@@ -1,0 +1,21 @@
+[debug] [2025-09-17T19:06:26.823Z] ----------------------------------------------------------------------
+[debug] [2025-09-17T19:06:26.825Z] Command:       /Users/a89373/.nvm/versions/node/v22.18.0/bin/node /Users/a89373/.nvm/versions/node/v22.18.0/bin/firebase init
+[debug] [2025-09-17T19:06:26.825Z] CLI Version:   14.16.0
+[debug] [2025-09-17T19:06:26.825Z] Platform:      darwin
+[debug] [2025-09-17T19:06:26.825Z] Node Version:  v22.18.0
+[debug] [2025-09-17T19:06:26.825Z] Time:          Wed Sep 17 2025 15:06:26 GMT-0400 (Eastern Daylight Time)
+[debug] [2025-09-17T19:06:26.825Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-17T19:06:26.828Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-17T19:06:26.828Z] > authorizing via signed-in user (tbw19990315@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /Users/a89373/Library/Mobile Documents/com~apple~CloudDocs/Documents/Github/Interview-King/interview-king
+
