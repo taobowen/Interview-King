@@ -6,7 +6,7 @@ import StatusBadge from './StatusBadge';
 import { tsToDate } from '../lib/utils';
 import { addStatusEvent } from '@/lib/firestore';
 import { useUser } from '../lib/useUser';
-import { STATUS_ORDER } from '../lib/status';
+import { STATUS_ORDER, REJECT_REASONS } from '../lib/status';
 import AppStatusTimeline from './Charts/AppStatusTimeLine';
 
 export default function ApplicationTable() {
@@ -19,6 +19,9 @@ export default function ApplicationTable() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationDoc | null>(null);
     const [events, setEvents] = useState<StatusEvent[]>([]);
+    const [rejectingId, setRejectingId] = useState<string | null>(null);
+    const [rejectReason, setRejectReason] = useState<string>(REJECT_REASONS[0]);
+    const [rejectCustom, setRejectCustom] = useState<string>('');
 
     useEffect(() => {
         if (!uid || loading) return;
@@ -59,7 +62,6 @@ export default function ApplicationTable() {
         if (current && current !== s) await addStatusEvent(uid, { appId: id, type: 'status-change', from: current, to: s });
         await updateApplication(uid, id, { status: s });
     };
-
 
     const handleDelete = async (id: string, title?: string, company?: string) => {
         if (!uid) return;
@@ -121,7 +123,11 @@ export default function ApplicationTable() {
                                         <select
                                             className="border rounded px-1 py-0.5"
                                             value={r.status}
-                                            onChange={(e) => changeStatus(r.id!, e.target.value as Status, r.status as Status)}
+                                            onChange={(e) => {
+                                                const next = e.target.value as Status;
+                                                if (next === 'Rejected') { setRejectingId(r.id!); setRejectReason(REJECT_REASONS[0]); return; }
+                                                changeStatus(r.id!, next);
+                                            }}
                                         >
                                             {['Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Rejected'].map((s) => (
                                                 <option key={s} value={s}>
@@ -129,6 +135,24 @@ export default function ApplicationTable() {
                                                 </option>
                                             ))}
                                         </select>
+                                        {rejectingId === r.id && (
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                <select className="border rounded px-2 py-1" value={rejectReason} onChange={e => setRejectReason(e.target.value)}>
+                                                    {REJECT_REASONS.map(x => <option key={x} value={x}>{x}</option>)}
+                                                </select>
+                                                {rejectReason === 'Other' && (
+                                                    <input className="border rounded px-2 py-1" placeholder="Custom reason" value={rejectCustom}
+                                                        onChange={e => setRejectCustom(e.target.value)} />
+                                                )}
+                                                <button className="px-2 py-1 rounded bg-rose-600 text-white" onClick={async () => {
+                                                    if (!uid) return;
+                                                    const reason = (rejectReason === 'Other' ? rejectCustom.trim() : rejectReason) || 'Unknown';
+                                                    await updateApplication(uid, r.id!, { status: 'Rejected', rejectionReason: reason, lastActionAt: new Date() as any });
+                                                    setRejectingId(null); setRejectCustom('');
+                                                }}>Confirm</button>
+                                                <button className="px-2 py-1 rounded border" onClick={() => { setRejectingId(null); setRejectCustom(''); }}>Cancel</button>
+                                            </div>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="p-2 max-w-xs truncate text-slate-700">{r.notes || ''}</td>

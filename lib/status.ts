@@ -16,3 +16,5 @@ export const statusColor = (s: Status) => ({
     Accepted:'bg-emerald-100 text-emerald-800',
     Rejected:'bg-rose-100 text-rose-800'
 }[s]);
+
+export const REJECT_REASONS = ['Competition', 'Failed OA', 'Failed interview', 'Not a fit', 'Compensation', 'Other'];

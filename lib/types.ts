@@ -22,7 +22,6 @@ export type ApplicationDoc = {
     statusOrder?: number;
     statusUpdatedAt?: any;  // NEW: last time status changed
     rejectionReason?: string; // for pie chart
-
 };
 
 export type StatusEvent = {
