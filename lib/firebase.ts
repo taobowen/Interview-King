@@ -4,21 +4,21 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
-  connectAuthEmulator,
 } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager, // or omit for single-tab
+  persistentMultipleTabManager,
   memoryLocalCache,
-  connectFirestoreEmulator,
 } from 'firebase/firestore';
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FB_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FB_AUTH_DOMAIN!,
+  authDomain: process.env.NEXT_PUBLIC_FB_AUTH_DOMAIN!, // must include your custom domain in Firebase console -> Authorized domains
   projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID!,
   storageBucket: process.env.NEXT_PUBLIC_FB_STORAGE!,
 };
@@ -27,36 +27,44 @@ const app = getApps().length ? getApps()[0] : initializeApp(config);
 
 // Auth
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 
-// Firestore (new way)
+/** Use redirect in prod to avoid COOP/popup issues, popup in dev for convenience */
+const isServer = typeof window === 'undefined';
+const isProd = process.env.NODE_ENV === 'production';
+
+export async function signInGoogle() {
+  if (isServer) return;
+
+  if (isProd) {
+    // No popup/opener → no COOP problem
+    await signInWithRedirect(auth, googleProvider);
+    // Control resumes on the redirect handler page
+    return;
+  } else {
+    // Local dev: popup is fine
+    return signInWithPopup(auth, googleProvider);
+  }
+}
+
+/** Call on your redirect handler page to finish sign-in */
+export function getGoogleRedirectResult() {
+  return getRedirectResult(auth);
+}
+
+export const signOutAll = () => signOut(auth);
+
+// Firestore (unchanged)
 function makeDb() {
-  // On the server just use the default in-memory cache.
   if (typeof window === 'undefined') return getFirestore(app);
-
-  // In the browser, prefer persistent cache (IndexedDB).
   try {
     return initializeFirestore(app, {
-      // single-tab: localCache: persistentLocalCache(),
       localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(), // keep tabs in sync
+        tabManager: persistentMultipleTabManager(),
       }),
     });
   } catch {
-    // If already initialized or persistence unsupported, fall back to memory.
     return initializeFirestore(app, { localCache: memoryLocalCache() });
   }
 }
 export const db = makeDb();
-
-// Optional: local emulators
-// if (process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
-//   if (typeof window !== 'undefined') {
-//     connectFirestoreEmulator(db, '127.0.0.1', 8080);
-//     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-//   }
-// }
-
-// Sign-in helpers
-export const googleProvider = new GoogleAuthProvider();
-export const signInGoogle = () => signInWithPopup(auth, googleProvider);
-export const signOutAll = () => signOut(auth);
