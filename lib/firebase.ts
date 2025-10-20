@@ -38,7 +38,7 @@ export async function signInGoogle() {
 
   if (isProd) {
     // No popup/opener → no COOP problem
-    await signInWithRedirect(auth, googleProvider);
+    await signInWithRedirect(auth, googleProvider)
     // Control resumes on the redirect handler page
     return;
   } else {

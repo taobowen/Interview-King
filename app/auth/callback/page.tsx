@@ -1,25 +1,21 @@
-// app/auth/callback/page.tsx
-"use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { auth, getGoogleRedirectResult } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+// app/auth/callback/page.tsx  (App Router)
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth, getGoogleRedirectResult } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
-    // Finalize the redirect sign-in and then route
-    getGoogleRedirectResult()
-      .catch(() => {}) // ignore non-fatal cases (e.g., refresh)
-      .finally(() => {
-        // Once auth state is available, route accordingly
-        const unsub = onAuthStateChanged(auth, (user) => {
-          unsub();
-          router.replace(user ? "/dashboard" : "/login?err=auth");
-        });
+    getGoogleRedirectResult().finally(() => {
+      const unsub = onAuthStateChanged(auth, (u) => {
+        unsub();
+        router.replace(u ? '/dashboard' : '/login?err=auth');
       });
+    });
   }, [router]);
 
-  return <p style={{ padding: 16 }}>Signing you in…</p>;
+  return <p className="p-4">Signing you in…</p>;
 }
