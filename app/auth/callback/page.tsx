@@ -12,7 +12,7 @@ export default function AuthCallback() {
     getGoogleRedirectResult().finally(() => {
       const unsub = onAuthStateChanged(auth, (u) => {
         unsub();
-        router.replace(u ? '/dashboard' : '/login?err=auth');
+        router.replace(u ? '/' : '/login?err=auth');
       });
     });
   }, [router]);

@@ -18,9 +18,9 @@ import {
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FB_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FB_AUTH_DOMAIN!, // must include your custom domain in Firebase console -> Authorized domains
+  authDomain: process.env.NEXT_PUBLIC_SITE_DOMAIN!, // e.g. "example.com" (no protocol)
   projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FB_STORAGE!,
+  storageBucket: process.env.NEXT_PUBLIC_FB_STORAGE_BUCKET!, // e.g. "interviewtraker.appspot.com"
 };
 
 const app = getApps().length ? getApps()[0] : initializeApp(config);
@@ -36,7 +36,7 @@ const isProd = process.env.NODE_ENV === 'production';
 export async function signInGoogle() {
   if (isServer) return;
 
-  if (isProd) {
+  if (true) {
     // No popup/opener → no COOP problem
     await signInWithRedirect(auth, googleProvider)
     // Control resumes on the redirect handler page
