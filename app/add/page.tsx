@@ -10,7 +10,7 @@ export default function AddPage() {
         <div className="max-w-xl">
             <h1 className="text-xl font-semibold mb-3">Add a Job</h1>
             <p className="text-sm text-slate-600 mb-4">Paste a job URL and basic info. (Auto‑metadata can be wired to a Cloud Function later.)</p>
-            <ApplicationForm uid={uid} />
+            <ApplicationForm uid={uid ?? undefined} />
         </div>
     );
 }
