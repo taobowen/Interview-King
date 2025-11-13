@@ -6,7 +6,7 @@ import StatusBadge from './StatusBadge';
 import { tsToDate } from '../lib/utils';
 import { addStatusEvent } from '@/lib/firestore';
 import { useUser } from '../lib/useUser';
-import { STATUS_ORDER, REJECT_REASONS } from '../lib/status';
+import { STATUS_ORDER } from '../lib/status';
 import AppStatusTimeline from './Charts/AppStatusTimeLine';
 
 export default function ApplicationTable() {
@@ -19,9 +19,6 @@ export default function ApplicationTable() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationDoc | null>(null);
     const [events, setEvents] = useState<StatusEvent[]>([]);
-    const [rejectingId, setRejectingId] = useState<string | null>(null);
-    const [rejectReason, setRejectReason] = useState<string>(REJECT_REASONS[0]);
-    const [rejectCustom, setRejectCustom] = useState<string>('');
 
     useEffect(() => {
         if (!uid || loading) return;
@@ -57,10 +54,16 @@ export default function ApplicationTable() {
     }, [filtered, sortKey, sortDir]);
 
 
-    const changeStatus = async (id: string, s: Status, current?: Status) => {
+    const changeStatus = async (id: string, next: Status, current?: Status) => {
         if (!uid) return;
-        if (current && current !== s) await addStatusEvent(uid, { appId: id, type: 'status-change', from: current, to: s });
-        await updateApplication(uid, id, { status: s });
+        if (current && current !== next) {
+            await addStatusEvent(uid, { appId: id, type: 'status-change', from: current, to: next });
+            const patch: any = { status: next, statusUpdatedAt: new Date() as any };
+            if (next === 'Rejected') patch.refusedAt = current; // store where rejection happened
+            await updateApplication(uid, id, patch);
+        } else {
+            await updateApplication(uid, id, { status: next });
+        }
     };
 
     const handleDelete = async (id: string, title?: string, company?: string) => {
@@ -104,8 +107,10 @@ export default function ApplicationTable() {
                         <tr className="text-left border-b">
                             <th className="p-2">Company</th>
                             <th className="p-2">Title</th>
+                            <th className="p-2">Position Level</th>
                             <th className="p-2">Location</th>
                             <th className="p-2">Status</th>
+                            <th className="p-2">Rejected at</th>
                             <th className="p-2">Notes</th>
                             <th className="p-2">Created</th>
                             <th className="p-2">Actions</th>
@@ -116,6 +121,7 @@ export default function ApplicationTable() {
                             <tr key={r.id} className="border-b hover:bg-slate-50">
                                 <td className="p-2 font-medium">{r.company}</td>
                                 <td className="p-2">{r.title}</td>
+                                <td className="p-2">{r.positionLevel || 'Unknown'}</td>
                                 <td className="p-2">{r.location}</td>
                                 <td className="p-2">
                                     <div className="flex items-center gap-2">
@@ -123,11 +129,7 @@ export default function ApplicationTable() {
                                         <select
                                             className="border rounded px-1 py-0.5"
                                             value={r.status}
-                                            onChange={(e) => {
-                                                const next = e.target.value as Status;
-                                                if (next === 'Rejected') { setRejectingId(r.id!); setRejectReason(REJECT_REASONS[0]); return; }
-                                                changeStatus(r.id!, next);
-                                            }}
+                                            onChange={(e)=>changeStatus(r.id!, e.target.value as Status, r.status as Status)}
                                         >
                                             {['Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Rejected'].map((s) => (
                                                 <option key={s} value={s}>
@@ -135,27 +137,12 @@ export default function ApplicationTable() {
                                                 </option>
                                             ))}
                                         </select>
-                                        {rejectingId === r.id && (
-                                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                                                <select className="border rounded px-2 py-1" value={rejectReason} onChange={e => setRejectReason(e.target.value)}>
-                                                    {REJECT_REASONS.map(x => <option key={x} value={x}>{x}</option>)}
-                                                </select>
-                                                {rejectReason === 'Other' && (
-                                                    <input className="border rounded px-2 py-1" placeholder="Custom reason" value={rejectCustom}
-                                                        onChange={e => setRejectCustom(e.target.value)} />
-                                                )}
-                                                <button className="px-2 py-1 rounded bg-rose-600 text-white" onClick={async () => {
-                                                    if (!uid) return;
-                                                    const reason = (rejectReason === 'Other' ? rejectCustom.trim() : rejectReason) || 'Unknown';
-                                                    await updateApplication(uid, r.id!, { status: 'Rejected', rejectionReason: reason, lastActionAt: new Date() as any });
-                                                    setRejectingId(null); setRejectCustom('');
-                                                }}>Confirm</button>
-                                                <button className="px-2 py-1 rounded border" onClick={() => { setRejectingId(null); setRejectCustom(''); }}>Cancel</button>
-                                            </div>
-                                        )}
                                     </div>
                                 </td>
-                                <td className="p-2 max-w-xs truncate text-slate-700">{r.notes || ''}</td>
+                                <td className="p-2 text-slate-600">
+                                    {r.status === 'Rejected' ? (r.refusedAt || 'Unknown') : '—'}
+                                </td>
+                                <td className="p-2 text-slate-600">{r.notes || ''}</td>
                                 <td className="p-2 text-slate-600">{tsToDate(r.createdAt).toLocaleDateString()}</td>
                                 <td className="p-2">
                                     <div className="flex gap-3">
@@ -186,9 +173,11 @@ export default function ApplicationTable() {
                         </div>
                         <div className="text-sm text-slate-600">
                             <div><b>Status:</b> {selected.status}</div>
+                            {selected.status === 'Rejected' && (
+                                <div><b>Rejected at:</b> {selected.refusedAt || 'Unknown'}</div>
+                            )}
                             <div><b>Status updated:</b> {tsToDate(selected.statusUpdatedAt || selected.lastActionAt).toLocaleString()}</div>
                             <div><b>Created:</b> {tsToDate(selected.createdAt).toLocaleString()}</div>
-                            {selected.rejectionReason && <div><b>Rejection reason:</b> {selected.rejectionReason}</div>}
                             {selected.notes && <div className="mt-1"><b>Notes:</b> {selected.notes}</div>}
                         </div>
                         <div className="border rounded p-3">

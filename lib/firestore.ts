@@ -35,11 +35,10 @@ export async function createApplication(uid: string, data: Partial<ApplicationDo
         status: data.status || 'Saved',
         notes: data.notes || '',
         priority: data.priority || 'Medium',
+        positionLevel: data.positionLevel || '',
         createdAt: serverTimestamp(),
         lastActionAt: serverTimestamp(),
         statusUpdatedAt: serverTimestamp(), // NEW
-        rejectionReason: data.rejectionReason || '',
-
     });
 }
 

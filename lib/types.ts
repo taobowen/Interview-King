@@ -9,6 +9,7 @@ export type ApplicationDoc = {
     jobUrl?: string;
     status: Status;
     priority?: 'High'|'Medium'|'Low';
+    positionLevel?: 'NG'|'Junior'|'Mid'|'Senior'|'Staff';
     jobType?: 'FT'|'Intern'|'Contract'|'Co-op';
     remote?: 'Remote'|'Hybrid'|'Onsite';
     techStack?: string[];
@@ -21,7 +22,8 @@ export type ApplicationDoc = {
     tags?: string[];
     statusOrder?: number;
     statusUpdatedAt?: any;  // NEW: last time status changed
-    rejectionReason?: string; // for pie chart
+    refusedAt?: Status; // the stage at which the app was rejected (prev status when setting Rejected)
+
 };
 
 export type StatusEvent = {

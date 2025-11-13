@@ -36,7 +36,7 @@ const isProd = process.env.NODE_ENV === 'production';
 export async function signInGoogle() {
   if (isServer) return;
 
-  if (true) {
+  if (isProd) {
     // No popup/opener → no COOP problem
     await signInWithRedirect(auth, googleProvider)
     // Control resumes on the redirect handler page

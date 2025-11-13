@@ -17,4 +17,14 @@ export const statusColor = (s: Status) => ({
     Rejected:'bg-rose-100 text-rose-800'
 }[s]);
 
-export const REJECT_REASONS = ['Competition', 'Failed OA', 'Failed interview', 'Not a fit', 'Compensation', 'Other'];
+export const INTERVIEW_STAGES: Status[] = ['Screen','Tech','Onsite'];
+
+export const STAGES: Status[] = [
+  'Applied','OA','Screen','Tech','Onsite','Offer','Accepted','Rejected'
+];
+
+export const STATUS_HEX = {
+  Saved:'#cbd5e1', Applied:'#60a5fa', OA:'#818cf8', Screen:'#f59e0b',
+  Tech:'#a78bfa', Onsite:'#14b8a6', Offer:'#22c55e', Accepted:'#10b981', Rejected:'#f43f5e',
+} as const;
+

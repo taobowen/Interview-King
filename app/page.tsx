@@ -5,9 +5,10 @@ import { listenApplications, listenStatusEvents } from '@/lib/firestore';
 import type { ApplicationDoc, StatusEvent } from '@/lib/types';
 import CountsMultiPeriod from '@/components/Charts/CountsMultiPeriod';
 import StatusUpdatesTimeline from '@/components/Charts/StatusUpdatesTimeline';
-import RejectionReasonsPie from '@/components/Charts/RejectionReasonsPie';
 import FunnelByStatus from '@/components/Charts/FunnelByStatus';
+import ApplicationSankey from '@/components/Charts/ApplicationSankey';
 import AppsPerWeek from '@/components/Charts/AppsPerWeek';
+import KPIs from '@/components/KPI';
 import { useUser } from '@/lib/useUser';
 
 export default function Dashboard() {
@@ -27,13 +28,17 @@ export default function Dashboard() {
 
   return (
     <div className="grid gap-6">
+      <KPIs apps={apps} events={events} />
+      <div className="grid md:grid-cols-2 gap-6">
+        <ApplicationSankey apps={apps} events={events} title="Overall application progress (Sankey)" />
+        <ApplicationSankey apps={apps} events={events} recentDays={30} title="Recent 30 days application progress (Sankey)" />
+      </div>
       <CountsMultiPeriod apps={apps} />
       <div className="grid md:grid-cols-2 gap-6">
         <FunnelByStatus apps={apps} />
         <AppsPerWeek apps={apps} />
       </div>
       <StatusUpdatesTimeline events={events} />
-      <RejectionReasonsPie apps={apps} />
     </div>
   );
 }

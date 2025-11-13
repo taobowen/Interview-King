@@ -5,7 +5,9 @@ import { useUser } from '../../../lib/useUser';
 import type { ApplicationDoc, Status } from '../../../lib/types';
 import { tsToDate } from '../../../lib/utils';
 import { getApplication, updateApplication, addStatusEvent } from '../../../lib/firestore';
-import { REJECT_REASONS } from '../../../lib/status';
+
+const REJECT_AT_OPTIONS: Status[] = ['Saved','Applied','OA','Screen','Tech','Onsite','Offer'];
+
 
 export default function EditApplicationPage() {
     const params = useParams();
@@ -15,8 +17,8 @@ export default function EditApplicationPage() {
     const [form, setForm] = useState<Partial<ApplicationDoc> | null>(null);
     const [loading, setLoading] = useState(true);
     const initialStatus = useRef<Status | undefined>(undefined);
-    const [reasonSel, setReasonSel] = useState<string>('No response');
-    const [reasonCustom, setReasonCustom] = useState<string>('');
+    const [refusedSel, setRefusedSel] = useState<Status>('Applied');
+
 
     useEffect(() => {
         if (!uid || !id) return;
@@ -24,10 +26,7 @@ export default function EditApplicationPage() {
             const doc = await getApplication(uid, id);
             initialStatus.current = (doc?.status as Status) || undefined;
             setForm(doc || {});
-            const existing = (doc?.rejectionReason || '').trim();
-            const matched = REJECT_REASONS.find(r => r.toLowerCase() === existing.toLowerCase());
-            setReasonSel(matched ?? 'Other');
-            setReasonCustom(matched ? '' : existing);
+            setRefusedSel(((doc?.refusedAt as Status) || 'Applied') as Status);
             setLoading(false);
         })();
     }, [uid, id]);
@@ -38,9 +37,8 @@ export default function EditApplicationPage() {
 
     const save = async () => {
         if (!uid || !id || !form) return;
-        const chosenReason = (form.status === 'Rejected')
-            ? ((reasonSel === 'Other' ? reasonCustom.trim() : reasonSel) || 'Unknown')
-            : '';
+        const was = initialStatus.current;
+        const now = (form.status || 'Saved') as Status;
         const patch: any = {
             title: form.title || '',
             company: form.company || '',
@@ -48,13 +46,14 @@ export default function EditApplicationPage() {
             jobUrl: form.jobUrl || '',
             status: (form.status || 'Saved') as Status,
             notes: form.notes || '',
-            rejectionReason: chosenReason, // NEW: persist edited reason
-        };
-        if (initialStatus.current && initialStatus.current !== patch.status) {
-            patch.statusUpdatedAt = new Date() as any;
-            await addStatusEvent(uid, { appId: id, type: 'status-change', from: initialStatus.current, to: patch.status });
-        }
+            refusedAt: now === 'Rejected' ? refusedSel : '', // <-- persist edited rejectedAt
 
+        };
+
+        if (was && was !== now) {
+            patch.statusUpdatedAt = new Date() as any;
+            await addStatusEvent(uid, { appId: id, type: 'status-change', from: was, to: now });
+        }
 
         await updateApplication(uid, id, patch);
         router.push('/applications');
@@ -84,24 +83,14 @@ export default function EditApplicationPage() {
 
             {(form.status as any) === 'Rejected' && (
                 <div className="grid gap-2">
-                    <label className="text-sm text-slate-600">Rejection reason</label>
-                    <div className="flex flex-wrap gap-2">
-                        <select
-                            className="border rounded px-2 py-1"
-                            value={reasonSel}
-                            onChange={(e) => setReasonSel(e.target.value)}
-                        >
-                            {REJECT_REASONS.map(x => <option key={x} value={x}>{x}</option>)}
-                        </select>
-                        {reasonSel === 'Other' && (
-                            <input
-                                className="border rounded px-3 py-2 grow"
-                                placeholder="Custom reason"
-                                value={reasonCustom}
-                                onChange={(e) => setReasonCustom(e.target.value)}
-                            />
-                        )}
-                    </div>
+                    <label className="text-sm text-slate-600">Rejected at</label>
+                    <select
+                    className="border rounded px-2 py-1 w-full"
+                    value={refusedSel}
+                    onChange={(e)=> setRefusedSel(e.target.value as Status)}
+                    >
+                    {REJECT_AT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                 </div>
             )}
 
