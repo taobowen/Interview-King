@@ -20,6 +20,7 @@ const START_COLOR = '#e5e7eb'; // slate-200
 // ensuring rejected flows end with refusedAt -> Rejected.
 function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {
   const sorted = [...evs].sort((a,b)=>tsToDate(a.at).getTime()-tsToDate(b.at).getTime());
+
   const isStage = (s?: any): s is Status => !!s && STAGE_SET.has(s as Status);
 
   // 1) Prefer earliest event.from if it's a pipeline stage
@@ -38,20 +39,24 @@ function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {
   if (!seed) seed = 'Applied';
 
   const seq: Status[] = [seed];
+
   sorted.forEach(e => { if (isStage(e.to) && seq[seq.length-1] !== e.to) seq.push(e.to as Status); });
 
   // If currently Rejected, ensure final hop ends at Rejected from the actual stage
-  if ((app.status as Status) === 'Rejected') {
+  // Only add rejection logic if events didn't already capture it
+  if ((app.status as Status) === 'Rejected' && seq[seq.length-1] !== 'Rejected') {
     const at = isStage(app.refusedAt) ? (app.refusedAt as Status) : seq[seq.length-1];
-    if (at && at !== 'Rejected') {
-      if (seq[seq.length-1] !== at) seq.push(at);
-      if (seq[seq.length-1] !== 'Rejected') seq.push('Rejected');
-    } else if (seq[seq.length-1] !== 'Rejected') {
-      seq.push('Rejected');
+    
+    // Only add the refusal stage if it's different from the current last stage
+    if (at && at !== 'Rejected' && seq[seq.length-1] !== at) {
+      seq.push(at);
     }
+    
+    // Add 'Rejected' as final stage
+    seq.push('Rejected');
   }
 
-  // Deduplicate consecutive
+  // Deduplicate consecutive stages (this handles any remaining edge cases)
   return seq.filter((s,i,a)=> i===0 || s!==a[i-1]);
 }
 
@@ -95,7 +100,7 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
       const [a,b] = k.split('→') as [Status | 'Start', Status];
       return { source: idx[a], target: idx[b], value: v, id: `link-${a}-${b}` };
     });
-    console.log(nodes, links);
+
     const data = {
       nodes: nodes.map(n => ({ ...n, id: `node-${n.name}` })),
       links,
