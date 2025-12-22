@@ -14,8 +14,6 @@ type Props = {
 
 const STAGE_SET = new Set<Status>(STAGES);
 
-const START_COLOR = '#e5e7eb'; // slate-200
-
 // Build a compact stage sequence for one app, excluding "Saved" and
 // ensuring rejected flows end with refusedAt -> Rejected.
 function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {

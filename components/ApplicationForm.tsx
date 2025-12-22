@@ -79,7 +79,7 @@ return (
         <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Job title</label>
             <select className="border rounded px-2 py-1" value={form.title||''} onChange={e=>update('title', e.target.value)}>
-                {['Front end', 'Full stack', 'SDE (Back end & Hybrid)','AI', 'Data', 'Other'].map(s=> <option key={s} value={s}>{s}</option>)}
+                {['Unknown', 'SDE (Back end & Hybrid)', 'Front end', 'Full stack','AI', 'Data', 'Other'].map(s=> <option key={s} value={s}>{s}</option>)}
             </select>
         </div>
         <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ return (
         <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Status</label>
             <select className="border rounded px-2 py-1" value={form.status} onChange={e=>update('status', e.target.value)}>
-                {['Saved','Applied','OA','Screen','Tech','Onsite','Offer','Accepted','Rejected'].map(s=> <option key={s} value={s}>{s}</option>)}
+                {['Applied','Saved','OA','Screen','Tech','Onsite','Offer','Accepted','Rejected'].map(s=> <option key={s} value={s}>{s}</option>)}
             </select>
         </div>
         {/* NEW: Notes */}
