@@ -8,7 +8,7 @@ import { collection, getDocs, query, where, limit, orderBy } from 'firebase/fire
 
 
 export default function ApplicationForm({ uid, onSaved }: { uid: string | undefined; onSaved?: () => void }) {
-const [form, setForm] = useState<Partial<ApplicationDoc>>({ status: 'Saved' });
+const [form, setForm] = useState<Partial<ApplicationDoc>>({ status: 'Applied', title: 'Unknown', location: 'Unknown', positionLevel: 'Unknown' });
 const [loading, setLoading] = useState(false);
 const [priorCount, setPriorCount] = useState(0);
 const [priorSamples, setPriorSamples] = useState<{status?: string; createdAt?: any}[]>([]);

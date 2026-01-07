@@ -8,10 +8,10 @@ export type ApplicationDoc = {
     location?: string;
     jobUrl?: string;
     status: Status;
-    priority?: 'High'|'Medium'|'Low';
-    positionLevel?: 'NG'|'Junior'|'Mid'|'Senior'|'Staff';
-    jobType?: 'FT'|'Intern'|'Contract'|'Co-op';
-    remote?: 'Remote'|'Hybrid'|'Onsite';
+    priority?: 'Unknown'|'High'|'Medium'|'Low';
+    positionLevel?: 'Unknown'|'NG'|'Junior'|'Mid'|'Senior'|'Staff';
+    jobType?: 'Unknown'|'FT'|'Intern'|'Contract'|'Co-op';
+    remote?: 'Unknown'|'Remote'|'Hybrid'|'Onsite';
     techStack?: string[];
     createdAt?: any; // Firestore Timestamp
     appliedAt?: any;
