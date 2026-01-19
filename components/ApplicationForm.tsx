@@ -49,7 +49,7 @@ const save = async () => {
     if (!uid) return alert('Please sign in');
         setLoading(true);
     await createApplication(uid, form);
-    setForm({ status: 'Saved' });
+    setForm({ status: 'Applied', title: 'Unknown', location: 'Unknown', positionLevel: 'Unknown', company: '', jobUrl: '', notes: '' });
     setLoading(false);
     onSaved?.();
 };
