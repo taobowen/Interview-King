@@ -13,6 +13,8 @@ import {
     query,
     serverTimestamp,
     updateDoc,
+    getDocs,
+    writeBatch,
 } from 'firebase/firestore';
 import type { ApplicationDoc, StatusEvent } from './types';
 import { where } from 'firebase/firestore';
@@ -62,6 +64,19 @@ export async function updateApplication(uid: string, id: string, patch: Partial<
 // DELETE (hard delete)
 export async function deleteApplication(uid: string, id: string) {
     await deleteDoc(doc(db, `users/${uid}/applications/${id}`));
+}
+
+// DELETE ALL (for replace functionality)
+export async function deleteAllApplications(uid: string) {
+    const q = query(collection(db, `users/${uid}/applications`));
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    
+    snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
 }
 
 

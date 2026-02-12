@@ -11,7 +11,7 @@ export default function ApplicationForm({ uid, onSaved }: { uid: string | undefi
 const [form, setForm] = useState<Partial<ApplicationDoc>>({ status: 'Applied', title: 'Unknown', location: 'Unknown', positionLevel: 'Unknown' });
 const [loading, setLoading] = useState(false);
 const [priorCount, setPriorCount] = useState(0);
-const [priorSamples, setPriorSamples] = useState<{status?: string; createdAt?: any}[]>([]);
+const [priorSamples, setPriorSamples] = useState<{status?: string; title?: string; createdAt?: any}[]>([]);
 
 useEffect(() => {
   let alive = true;
@@ -33,7 +33,7 @@ useEffect(() => {
     setPriorSamples(
       docs
         .map(d => d.data() as any)
-        .map(d => ({ status: d.status, createdAt: d.createdAt }))
+        .map(d => ({ status: d.status, title: d.title, createdAt: d.createdAt }))
         .slice(0, 3)
     );
   })();
@@ -66,7 +66,7 @@ return (
                 <div className="mt-1 space-y-0.5">
                 {priorSamples.map((s, i) => (
                     <div key={`prior-${i}`}>
-                    • {s.status || 'Unknown status'}{s.createdAt ? ` — ${new Date(s.createdAt.toDate ? s.createdAt.toDate() : s.createdAt).toLocaleDateString()}` : ''}
+                    • {s.title || 'Unknown title'} — {s.status || 'Unknown status'}{s.createdAt ? ` — ${new Date(s.createdAt.toDate ? s.createdAt.toDate() : s.createdAt).toLocaleDateString()}` : ''}
                     </div>
                 ))}
                 </div>
@@ -79,7 +79,7 @@ return (
         <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Job title</label>
             <select className="border rounded px-2 py-1" value={form.title||''} onChange={e=>update('title', e.target.value)}>
-                {['Unknown', 'SDE (Back end & Hybrid)', 'Front end', 'Full stack','AI', 'Data', 'Other'].map(s=> <option key={s} value={s}>{s}</option>)}
+                {['Unknown', 'Back end', 'Front end', 'Full stack','AI', 'Data', 'Other'].map(s=> <option key={s} value={s}>{s}</option>)}
             </select>
         </div>
         <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ return (
         <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Status</label>
             <select className="border rounded px-2 py-1" value={form.status} onChange={e=>update('status', e.target.value)}>
-                {['Applied','Saved','OA','Screen','Tech','Onsite','Offer','Accepted','Rejected'].map(s=> <option key={s} value={s}>{s}</option>)}
+                {['Applied','Saved','OA','Screen','Tech','Onsite','Offer','Accepted','Rejected', 'Closed'].map(s=> <option key={s} value={s}>{s}</option>)}
             </select>
         </div>
         {/* NEW: Notes */}

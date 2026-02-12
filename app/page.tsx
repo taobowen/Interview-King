@@ -7,7 +7,6 @@ import CountsMultiPeriod from '@/components/Charts/CountsMultiPeriod';
 import StatusUpdatesTimeline from '@/components/Charts/StatusUpdatesTimeline';
 import FunnelByStatus from '@/components/Charts/FunnelByStatus';
 import ApplicationSankey from '@/components/Charts/ApplicationSankey';
-import AppsPerWeek from '@/components/Charts/AppsPerWeek';
 import KPIs from '@/components/KPI';
 import { useUser } from '@/lib/useUser';
 
@@ -35,10 +34,12 @@ export default function Dashboard() {
       </div>
       <CountsMultiPeriod apps={apps} />
       <div className="grid md:grid-cols-2 gap-6">
-        <FunnelByStatus apps={apps} />
-        <AppsPerWeek apps={apps} />
+        <div className="bg-white rounded-lg border p-6">
+          <h3 className="text-lg font-semibold text-slate-800 mb-4">Application Status Distribution</h3>
+          <FunnelByStatus apps={apps} />
+        </div>
+        <StatusUpdatesTimeline events={events} />
       </div>
-      <StatusUpdatesTimeline events={events} />
     </div>
   );
 }
