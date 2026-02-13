@@ -1,10 +1,9 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { listenApplications, updateApplication, deleteApplication, listenStatusEventsForApp } from '../lib/firestore';
+import { apiClient } from '../lib/api-client';
 import type { ApplicationDoc, Status, StatusEvent } from '../lib/types';
 import StatusBadge from './StatusBadge';
 import { tsToDate } from '../lib/utils';
-import { addStatusEvent } from '@/lib/firestore';
 import { useUser } from '../lib/useUser';
 import { STATUS_ORDER } from '../lib/status';
 import AppStatusTimeline from './Charts/AppStatusTimeLine';
@@ -19,17 +18,52 @@ export default function ApplicationTable() {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selected, setSelected] = useState<ApplicationDoc | null>(null);
     const [events, setEvents] = useState<StatusEvent[]>([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchApplications = async () => {
+        if (!uid || loading) return;
+        
+        setRefreshing(true);
+        try {
+            const response = await apiClient.get('/api/applications');
+            if (response.ok) {
+                const data = await response.json();
+                setRows(data.applications || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch applications:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    const fetchStatusEvents = async (appId: string) => {
+        if (!uid) return;
+        
+        try {
+            const response = await apiClient.get(`/api/status-events/by-app?appId=${appId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setEvents(data.events || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch status events:', error);
+            setEvents([]);
+        }
+    };
 
     useEffect(() => {
-        if (!uid || loading) return;
-        const unsub = listenApplications(uid, setRows);
-        return () => unsub();
+        fetchApplications();
+        
+        // Poll for updates every 30 seconds
+        const interval = setInterval(fetchApplications, 30000);
+        return () => clearInterval(interval);
     }, [uid, loading]);
 
     useEffect(() => {
-        if (!uid || !drawerOpen || !selected?.id) return;
-        const unsub = listenStatusEventsForApp(uid, selected.id, setEvents);
-        return () => unsub();
+        if (drawerOpen && selected?.id) {
+            fetchStatusEvents(selected.id);
+        }
     }, [uid, drawerOpen, selected?.id]);
 
     const filtered = useMemo(() => rows.filter(r => {
@@ -56,20 +90,62 @@ export default function ApplicationTable() {
 
     const changeStatus = async (id: string, next: Status, current?: Status) => {
         if (!uid) return;
-        if (current && current !== next) {
-            await addStatusEvent(uid, { appId: id, type: 'status-change', from: current, to: next });
-            const patch: any = { status: next, statusUpdatedAt: new Date() as any };
-            if (next === 'Rejected') patch.refusedAt = current; // store where rejection happened
-            await updateApplication(uid, id, patch);
-        } else {
-            await updateApplication(uid, id, { status: next });
+        
+        try {
+            // First create status event if status is changing
+            if (current && current !== next) {
+                await apiClient.post('/api/status-events', {
+                    appId: id,
+                    type: 'status-change',
+                    from: current,
+                    to: next
+                });
+            }
+            
+            // Update application status
+            const updateData: any = { status: next };
+            if (next === 'Rejected' && current) {
+                updateData.refusedAt = current; // store where rejection happened
+            }
+            
+            const response = await apiClient.patch(`/api/applications?id=${id}`, updateData);
+            
+            if (response.ok) {
+                // Refresh applications list
+                await fetchApplications();
+                // If drawer is open for this app, refresh events too
+                if (selected?.id === id && drawerOpen) {
+                    await fetchStatusEvents(id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to change status:', error);
+            alert('Failed to update status. Please try again.');
         }
     };
 
     const handleDelete = async (id: string, title?: string, company?: string) => {
         if (!uid) return;
         if (!confirm(`Delete "${title || 'this role'}" at ${company || 'company'}? This cannot be undone.`)) return;
-        await deleteApplication(uid, id);
+        
+        try {
+            const response = await apiClient.delete(`/api/applications?id=${id}`);
+            
+            if (response.ok) {
+                // Close drawer if deleted app was selected
+                if (selected?.id === id) {
+                    setDrawerOpen(false);
+                    setSelected(null);
+                }
+                // Refresh applications list
+                await fetchApplications();
+            } else {
+                throw new Error('Failed to delete');
+            }
+        } catch (error) {
+            console.error('Failed to delete application:', error);
+            alert('Failed to delete application. Please try again.');
+        }
     };
 
     const openDrawer = (row: ApplicationDoc) => { setSelected(row); setDrawerOpen(true); };
@@ -82,8 +158,32 @@ export default function ApplicationTable() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search title/company/location"
-                    className="border rounded px-3 py-2 w-full"
+                    className="flex-1 px-3 py-2 border rounded"
                 />
+                
+                <button
+                    onClick={fetchApplications}
+                    disabled={refreshing}
+                    className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2"
+                >
+                    {refreshing ? (
+                        <>
+                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Refreshing...
+                        </>
+                    ) : (
+                        <>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                        </>
+                    )}
+                </button>
+                
                 <select value={filter} onChange={(e) => setFilter(e.target.value as any)} className="border rounded px-2 py-2">
                     {['All', 'Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Rejected', 'Closed'].map((s) => (
                         <option key={s} value={s}>

@@ -1,11 +1,12 @@
 'use client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { StatusEvent } from '@/lib/types';
+import { tsToDate } from '@/lib/utils';
 
 export default function StatusUpdatesTimeline({ events }: { events: StatusEvent[] }) {
   const map: Record<string, number> = {};
   events.forEach(ev => {
-    const dt = ev.at?.toDate?.() ? ev.at.toDate() : (ev.at?.seconds ? new Date(ev.at.seconds * 1000) : new Date());
+    const dt = tsToDate(ev.at);
     const key = dt.toISOString().slice(0, 10);
     map[key] = (map[key] || 0) + 1;
   });

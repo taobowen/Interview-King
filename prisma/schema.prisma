@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  uid         String   @unique // Firebase UID
+  email       String?  @unique
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  applications Application[]
+  statusEvents StatusEvent[]
+  jobTitles    UserJobTitle[]
+
+  @@map("users")
+}
+
+model UserJobTitle {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@unique([userId, title], name: "unique_user_title")
+  @@map("user_job_titles")
+}
+
+model Application {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  titleId          String?   @map("title_id")
+  titleText        String?   @map("title_text")
+  company          String
+  companyLower     String?   @map("company_lower") // Generated in DB
+  location         String?
+  jobUrl           String?   @map("job_url")
+  status           ApplicationStatus @default(Saved)
+  priority         PriorityLevel     @default(Medium)
+  positionLevel    PositionLevel     @default(Unknown) @map("position_level")
+  jobType          JobType?          @map("job_type")
+  remote           RemoteType?
+  techStack        String[]          @map("tech_stack")
+  notes            String?
+  tags             String[]
+  statusOrder      Int?              @map("status_order")
+  refusedAt        DateTime?         @map("refused_at")
+  
+  // Timestamps
+  createdAt        DateTime  @default(now()) @map("created_at")
+  appliedAt        DateTime? @map("applied_at")
+  lastActionAt     DateTime  @default(now()) @map("last_action_at")
+  nextActionAt     DateTime? @map("next_action_at")
+  deadlineAt       DateTime? @map("deadline_at")
+  statusUpdatedAt  DateTime  @default(now()) @map("status_updated_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobTitle     UserJobTitle?  @relation(fields: [titleId], references: [id])
+  statusEvents StatusEvent[]
+
+  @@map("applications")
+}
+
+model StatusEvent {
+  id            String   @id @default(uuid())
+  applicationId String   @map("application_id")
+  userId        String   @map("user_id")
+  eventType     String   @default("status-change") @map("event_type")
+  fromStatus    ApplicationStatus? @map("from_status")
+  toStatus      ApplicationStatus  @map("to_status")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("status_events")
+}
+
+// Enums matching PostgreSQL schema
+enum ApplicationStatus {
+  Saved
+  Applied
+  OA
+  Screen
+  Tech
+  Onsite
+  Offer
+  Accepted
+  Rejected
+  Closed
+}
+
+enum PriorityLevel {
+  Unknown
+  High
+  Medium
+  Low
+}
+
+enum PositionLevel {
+  Unknown
+  NG
+  Junior
+  Mid
+  Senior
+  Staff
+}
+
+enum JobType {
+  Unknown
+  FT
+  Intern
+  Contract
+  CoOp @map("Co-op")
+}
+
+enum RemoteType {
+  Unknown
+  Remote
+  Hybrid
+  Onsite
+}

@@ -8,9 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
     "firebase": "^12.2.1",
+    "firebase-admin": "^13.6.1",
     "next": "15.5.9",
     "papaparse": "^5.5.3",
+    "pg": "^8.18.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-firebase-hooks": "^5.1.1",
@@ -20,10 +24,12 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.16",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
+    "prisma": "^7.4.0",
     "tailwindcss": "^4.1.13",
     "typescript": "^5"
   }

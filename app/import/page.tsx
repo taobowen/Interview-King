@@ -2,7 +2,7 @@
 import * as React from 'react';
 import Papa from 'papaparse';
 import { useUser } from '../../lib/useUser';
-import { createApplication, deleteAllApplications } from '@/lib/firestore';
+import { apiClient } from '@/lib/api-client';
 import type { ApplicationDoc } from '@/lib/types';
 
 const REQUIRED = ['title','company','status'];
@@ -45,30 +45,42 @@ export default function ImportCSV() {
     if(!uid || !rows.length) return;
     setImporting(true);
     
-    if (importMode === 'replace') {
-      try {
-        await deleteAllApplications(uid);
-      } catch (error) {
-        console.error('Error deleting existing data:', error);
-        alert('Error clearing existing data. Import cancelled.');
-        setImporting(false);
-        return;
-      }
-    }
-    
     try {
-      for(const r of rows) { 
-        await createApplication(uid, normalize(r)); 
+      if (importMode === 'replace') {
+        const response = await apiClient.delete('/api/applications/all');
+        if (!response.ok) {
+          throw new Error('Failed to clear existing data');
+        }
       }
+      
+      // Import applications one by one
+      for(const r of rows) { 
+        const normalizedData = normalize(r);
+        const response = await apiClient.post('/api/applications', {
+          title: normalizedData.title,
+          company: normalizedData.company,
+          location: normalizedData.location,
+          jobUrl: normalizedData.jobUrl,
+          status: normalizedData.status,
+          priority: normalizedData.priority,
+          positionLevel: normalizedData.positionLevel,
+          notes: normalizedData.notes
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to import row:', normalizedData);
+        }
+      }
+      
       setImportComplete(true);
       setRows([]);
       setErrors([]);
     } catch (error) {
       console.error('Import error:', error);
       alert('Error during import. Some data may not have been imported.');
+    } finally {
+      setImporting(false);
     }
-    
-    setImporting(false);
   };
   
   if (loading) return <p className="text-slate-600">Loading…</p>;
