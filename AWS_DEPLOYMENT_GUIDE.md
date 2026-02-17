@@ -2,7 +2,7 @@
 
 To fix the deployment error and ensure your app works correctly in AWS Amplify, you need to configure these environment variables in your Amplify console.
 
-## Required Environment Variables
+## Required Environment Variables in AWS Amplify Console
 
 ### Firebase Configuration (Public - safe to expose)
 ```
@@ -16,13 +16,27 @@ NEXT_PUBLIC_FB_STORAGE_BUCKET=interviewtraker.appspot.com
 
 ### Firebase Admin SDK (Private - keep secret!)
 ```
-FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"interviewtraker","private_key_id":"...your complete service account JSON..."}
+FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"interviewtraker","private_key_id":"...your complete service account JSON as single line..."}
 ```
 
 ### Database Configuration (Private - keep secret!)
 ```
 DATABASE_URL=postgresql://username:password@host:port/database?schema=public
 ```
+
+## How Environment Variables Work in AWS Amplify
+
+1. **Environment Variables** are set in Amplify Console → App Settings → Environment Variables
+2. **During Build**: The `amplify.yml` automatically writes these to `.env.production`
+3. **At Runtime**: Next.js SSR can read environment variables from `.env.production`
+
+## The `amplify.yml` Configuration
+
+The build configuration in `amplify.yml` automatically:
+- Installs dependencies with `npm ci`
+- Creates `.env.production` with all required environment variables
+- Runs `npm run build` which includes Prisma generation
+- Caches build artifacts for faster deployments
 
 ## How to Add Environment Variables in AWS Amplify
 

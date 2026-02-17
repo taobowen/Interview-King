@@ -4,6 +4,9 @@ frontend:
     preBuild:
       commands:
         - npm ci
+        # Create .env.production with environment variables for SSR runtime
+        - echo "FIREBASE_SERVICE_ACCOUNT_KEY=$FIREBASE_SERVICE_ACCOUNT_KEY" >> .env.production
+        - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
     build:
       commands:
         - npm run build
