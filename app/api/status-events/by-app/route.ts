@@ -32,7 +32,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     });
 
     // Transform to match frontend expectations
-    const transformedEvents = events.map(event => ({
+    const transformedEvents = events.map((event: typeof events[0]) => ({
       id: event.id,
       appId: event.applicationId,
       type: event.eventType,

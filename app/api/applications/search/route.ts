@@ -43,7 +43,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
     });
 
     // Transform to match frontend expectations
-    const transformedApps = applications.map(app => ({
+    const transformedApps = applications.map((app: typeof applications[0]) => ({
       id: app.id,
       title: app.jobTitle?.title || app.titleText,
       company: app.company,

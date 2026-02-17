@@ -37,7 +37,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       ];
       
       await prisma.userJobTitle.createMany({
-        data: defaultTitles.map((title, index) => ({
+        data: defaultTitles.map((title: string, index: number) => ({
           userId: user.id,
           title,
           sortOrder: index,
@@ -252,7 +252,7 @@ export async function PUT(req: NextRequest) {
     }
     
     // Update sort order for each title
-    const updates = titleIds.map((titleId, index) => 
+    const updates = titleIds.map((titleId: string, index: number) => 
       prisma.userJobTitle.updateMany({
         where: {
           id: titleId,
