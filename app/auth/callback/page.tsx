@@ -2,7 +2,7 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, getGoogleRedirectResult } from '@/lib/firebase';
+import { auth, getGoogleRedirectResult } from '@/lib/firebase.client';
 import { onAuthStateChanged } from 'firebase/auth';
 
 export default function AuthCallback() {

@@ -2,7 +2,7 @@
 import ApplicationForm from '../../components/ApplicationForm';
 import { useUser } from '../../lib/useUser';
 import { useEffect, useState } from 'react';
-import { auth } from '../../lib/firebase';
+import { auth } from '../../lib/firebase.client';
 
 export default function AddPage() {
     const { uid, loading } = useUser();

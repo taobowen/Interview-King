@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '../../../lib/useUser';
-import { auth } from '../../../lib/firebase';
+import { auth } from '../../../lib/firebase.client';
 import type { ApplicationDoc, Status } from '../../../lib/types';
 import { tsToDate } from '../../../lib/utils';
 

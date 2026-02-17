@@ -1,4 +1,7 @@
-// lib/firebase.ts
+'use client';
+
+// lib/firebase.client.ts
+// Client-only Firebase Web SDK module
 import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
@@ -11,9 +14,9 @@ import {
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FB_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_SITE_DOMAIN!, // e.g. "example.com" (no protocol)
+  authDomain: process.env.NEXT_PUBLIC_SITE_DOMAIN!,
   projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FB_STORAGE_BUCKET!, // e.g. "interviewtraker.appspot.com"
+  storageBucket: process.env.NEXT_PUBLIC_FB_STORAGE_BUCKET!,
 };
 
 const app = getApps().length ? getApps()[0] : initializeApp(config);
@@ -23,15 +26,12 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 /** Use redirect in prod to avoid COOP/popup issues, popup in dev for convenience */
-const isServer = typeof window === 'undefined';
 const isProd = process.env.NODE_ENV === 'production';
 
 export async function signInGoogle() {
-  if (isServer) return;
-
   if (isProd) {
     // No popup/opener → no COOP problem
-    await signInWithRedirect(auth, googleProvider)
+    await signInWithRedirect(auth, googleProvider);
     // Control resumes on the redirect handler page
     return;
   } else {

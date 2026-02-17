@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { auth, signInGoogle, signOutAll } from '../lib/firebase';
+import { auth, signInGoogle, signOutAll } from '../lib/firebase.client';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
 

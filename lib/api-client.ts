@@ -1,5 +1,7 @@
+'use client';
+
 // lib/api-client.ts
-import { auth } from './firebase';
+import { auth } from './firebase.client';
 
 // Helper to make authenticated API requests
 export async function authenticatedFetch(url: string, options: RequestInit = {}) {
