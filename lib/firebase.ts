@@ -8,13 +8,6 @@ import {
   getRedirectResult,
   signOut,
 } from 'firebase/auth';
-import {
-  getFirestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  memoryLocalCache,
-} from 'firebase/firestore';
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FB_API_KEY!,
@@ -53,18 +46,3 @@ export function getGoogleRedirectResult() {
 }
 
 export const signOutAll = () => signOut(auth);
-
-// Firestore (unchanged)
-function makeDb() {
-  if (typeof window === 'undefined') return getFirestore(app);
-  try {
-    return initializeFirestore(app, {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
-    });
-  } catch {
-    return initializeFirestore(app, { localCache: memoryLocalCache() });
-  }
-}
-export const db = makeDb();

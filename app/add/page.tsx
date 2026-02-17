@@ -2,9 +2,7 @@
 import ApplicationForm from '../../components/ApplicationForm';
 import { useUser } from '../../lib/useUser';
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-
+import { auth } from '../../lib/firebase';
 
 export default function AddPage() {
     const { uid, loading } = useUser();
@@ -12,13 +10,35 @@ export default function AddPage() {
 
     useEffect(() => {
         if (!uid) return;
-        const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000);
-        const q = query(
-            collection(db, `users/${uid}/applications`),
-            where('createdAt', '>=', Timestamp.fromDate(cutoff))
-        );
-        const unsub = onSnapshot(q, (snap) => setLast12hCount(snap.size));
-        return () => unsub();
+        
+        const fetchRecentCount = async () => {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const token = await user.getIdToken();
+                const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+                
+                const response = await fetch(`/api/applications`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    // Filter applications from last 12 hours
+                    const recentApps = data.applications.filter((app: any) => 
+                        new Date(app.createdAt) > twelveHoursAgo
+                    );
+                    setLast12hCount(recentApps.length);
+                }
+            } catch (error) {
+                console.error('Error fetching recent applications:', error);
+            }
+        };
+        
+        fetchRecentCount();
     }, [uid]);
 
     if (loading) return <p className="text-slate-600">Loading…</p>;

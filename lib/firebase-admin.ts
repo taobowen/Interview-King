@@ -1,29 +1,29 @@
 // lib/firebase-admin.ts
 import admin from 'firebase-admin';
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
+// Check if we're in build/development mode without service account
+const isLocalBuild = process.env.NODE_ENV !== 'production' || !process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+// Initialize Firebase Admin SDK only if we have credentials
+if (!admin.apps.length && !isLocalBuild) {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   
-  if (!serviceAccountKey) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is required');
+  if (serviceAccountKey) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID,
+      });
+    } catch (error) {
+      console.warn('Failed to initialize Firebase Admin SDK:', error);
+    }
   }
-
-  let serviceAccount;
-  try {
-    serviceAccount = JSON.parse(serviceAccountKey);
-  } catch (error) {
-    throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT_KEY format. Must be valid JSON.');
-  }
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID,
-  });
 }
 
-export const adminAuth = admin.auth();
-export const adminFirestore = admin.firestore();
+// Conditional exports - only available when Firebase Admin is properly initialized
+export const adminAuth = admin.apps.length > 0 ? admin.auth() : null;
+export const adminFirestore = admin.apps.length > 0 ? admin.firestore() : null;
 
 // User info returned from token verification
 export interface VerifiedUser {
@@ -36,6 +36,11 @@ export interface VerifiedUser {
 // Verify Firebase token and return user info
 export async function verifyFirebaseToken(req: Request | any): Promise<VerifiedUser> {
   try {
+    // Check if admin is available
+    if (!adminAuth) {
+      throw new Error('Firebase Admin SDK not initialized - check FIREBASE_SERVICE_ACCOUNT_KEY');
+    }
+
     // Extract token from Authorization header
     const authHeader = req.headers.get?.('authorization') || req.headers?.authorization;
     

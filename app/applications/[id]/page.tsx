@@ -2,9 +2,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '../../../lib/useUser';
+import { auth } from '../../../lib/firebase';
 import type { ApplicationDoc, Status } from '../../../lib/types';
 import { tsToDate } from '../../../lib/utils';
-import { getApplication, updateApplication, addStatusEvent } from '../../../lib/firestore';
 
 const REJECT_AT_OPTIONS: Status[] = ['Saved','Applied','OA','Screen','Tech','Onsite','Offer'];
 
@@ -23,11 +23,31 @@ export default function EditApplicationPage() {
     useEffect(() => {
         if (!uid || !id) return;
         (async () => {
-            const doc = await getApplication(uid, id);
-            initialStatus.current = (doc?.status as Status) || undefined;
-            setForm(doc || {});
-            setRefusedSel(((doc?.refusedAt as Status) || 'Applied') as Status);
-            setLoading(false);
+            try {
+                // Fetch application from PostgreSQL API
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const token = await user.getIdToken();
+                const response = await fetch(`/api/applications?id=${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const app = data.application;
+                    initialStatus.current = app?.status || undefined;
+                    setForm(app || {});
+                    setRefusedSel(app?.refusedAt || 'Applied');
+                }
+                
+            } catch (error) {
+                console.error('Error fetching application:', error);
+            } finally {
+                setLoading(false);
+            }
         })();
     }, [uid, id]);
 
@@ -37,26 +57,60 @@ export default function EditApplicationPage() {
 
     const save = async () => {
         if (!uid || !id || !form) return;
-        const was = initialStatus.current;
-        const now = (form.status || 'Saved') as Status;
-        const patch: any = {
-            title: form.title || '',
-            company: form.company || '',
-            location: form.location || '',
-            jobUrl: form.jobUrl || '',
-            status: (form.status || 'Saved') as Status,
-            notes: form.notes || '',
-            refusedAt: now === 'Rejected' ? refusedSel : '', // <-- persist edited rejectedAt
+        
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+            
+            const token = await user.getIdToken();
+            const was = initialStatus.current;
+            const now = (form.status || 'Saved') as Status;
+            
+            const updateData = {
+                title: form.title || '',
+                company: form.company || '',
+                location: form.location || '',
+                jobUrl: form.jobUrl || '',
+                status: now,
+                notes: form.notes || '',
+                refusedAt: now === 'Rejected' ? new Date(refusedSel).toISOString() : null,
+            };
 
-        };
+            // Update application via PostgreSQL API
+            const response = await fetch(`/api/applications?id=${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(updateData),
+            });
 
-        if (was && was !== now) {
-            patch.statusUpdatedAt = new Date() as any;
-            await addStatusEvent(uid, { appId: id, type: 'status-change', from: was, to: now });
+            if (response.ok) {
+                // If status changed, create status event via API
+                if (was && was !== now) {
+                    await fetch('/api/status-events', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            appId: id,
+                            type: 'status-change',
+                            from: was,
+                            to: now,
+                        }),
+                    });
+                }
+                
+                router.push('/applications');
+            } else {
+                console.error('Failed to update application');
+            }
+        } catch (error) {
+            console.error('Error saving application:', error);
         }
-
-        await updateApplication(uid, id, patch);
-        router.push('/applications');
     };
 
     if (!uid) return <p className="text-slate-600">Please sign in.</p>;
