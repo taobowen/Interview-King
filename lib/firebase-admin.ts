@@ -1,23 +1,20 @@
 // lib/firebase-admin.ts
 import admin from 'firebase-admin';
 
-// Check if we're in build/development mode without service account
-const isLocalBuild = process.env.NODE_ENV !== 'production' || !process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-
-// Initialize Firebase Admin SDK only if we have credentials
-if (!admin.apps.length && !isLocalBuild) {
+// Initialize Firebase Admin SDK if we have credentials and no existing app
+if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   
-  if (serviceAccountKey) {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountKey);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID,
-      });
-    } catch (error) {
-      console.warn('Failed to initialize Firebase Admin SDK:', error);
-    }
+  try {
+    const serviceAccount = JSON.parse(serviceAccountKey);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID || serviceAccount.project_id,
+    });
+    console.log('Firebase Admin SDK initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error);
+    console.error('Service account key format:', typeof serviceAccountKey, serviceAccountKey.substring(0, 50) + '...');
   }
 }
 
@@ -38,7 +35,15 @@ export async function verifyFirebaseToken(req: Request | any): Promise<VerifiedU
   try {
     // Check if admin is available
     if (!adminAuth) {
-      throw new Error('Firebase Admin SDK not initialized - check FIREBASE_SERVICE_ACCOUNT_KEY');
+      const hasKey = !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+      const nodeEnv = process.env.NODE_ENV;
+      throw new Error(
+        `Firebase Admin SDK not initialized. ` +
+        `Environment: ${nodeEnv}, ` +
+        `Service Account Key Present: ${hasKey}, ` +
+        `Admin Apps Count: ${admin.apps.length}. ` +
+        `Check FIREBASE_SERVICE_ACCOUNT_KEY environment variable.`
+      );
     }
 
     // Extract token from Authorization header
