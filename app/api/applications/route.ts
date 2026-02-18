@@ -74,7 +74,6 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
         userId: user.id,
         titleText: body.title,
         company: body.company,
-        companyLower: body.company.toLowerCase(),
         location: body.location || null,
         jobUrl: body.jobUrl || null,
         status: body.status || 'Saved',

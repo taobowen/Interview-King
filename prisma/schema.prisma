@@ -7,89 +7,124 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  uid         String   @unique // Firebase UID
-  email       String?  @unique
-  displayName String?  @map("display_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  uid          String         @unique @db.VarChar(255)
+  email        String?        @unique @db.VarChar(255)
+  displayName  String?        @map("display_name") @db.VarChar(255)
+  createdAt    DateTime?      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime?      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   applications Application[]
   statusEvents StatusEvent[]
   jobTitles    UserJobTitle[]
 
+  @@index([uid], map: "idx_users_uid")
   @@map("users")
 }
 
 model UserJobTitle {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  title     String
-  isActive  Boolean  @default(true) @map("is_active")
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String        @map("user_id") @db.Uuid
+  title        String        @db.VarChar(255)
+  isActive     Boolean?      @default(true) @map("is_active")
+  sortOrder    Int?          @default(0) @map("sort_order")
+  createdAt    DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime?     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   applications Application[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([userId, title], name: "unique_user_title")
+  @@unique([userId, title], name: "unique_user_title", map: "unique_user_title")
+  @@index([userId, isActive], map: "idx_user_job_titles_active")
+  @@index([userId, sortOrder], map: "idx_user_job_titles_sort")
+  @@index([userId], map: "idx_user_job_titles_user_id")
   @@map("user_job_titles")
 }
 
 model Application {
-  id               String    @id @default(uuid())
-  userId           String    @map("user_id")
-  titleId          String?   @map("title_id")
-  titleText        String?   @map("title_text")
-  company          String
-  companyLower     String?   @map("company_lower") // Generated in DB
-  location         String?
-  jobUrl           String?   @map("job_url")
-  status           ApplicationStatus @default(Saved)
-  priority         PriorityLevel     @default(Medium)
-  positionLevel    PositionLevel     @default(Unknown) @map("position_level")
-  jobType          JobType?          @map("job_type")
-  remote           RemoteType?
-  techStack        String[]          @map("tech_stack")
-  notes            String?
-  tags             String[]
-  statusOrder      Int?              @map("status_order")
-  refusedAt        DateTime?         @map("refused_at")
-  
-  // Timestamps
-  createdAt        DateTime  @default(now()) @map("created_at")
-  appliedAt        DateTime? @map("applied_at")
-  lastActionAt     DateTime  @default(now()) @map("last_action_at")
-  nextActionAt     DateTime? @map("next_action_at")
-  deadlineAt       DateTime? @map("deadline_at")
-  statusUpdatedAt  DateTime  @default(now()) @map("status_updated_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id              String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String             @map("user_id") @db.Uuid
+  titleId         String?            @map("title_id") @db.Uuid
+  titleText       String?            @map("title_text") @db.VarChar(255)
+  company         String             @db.VarChar(255)
+  companyLower    String?            @default(dbgenerated("lower((company)::text)")) @map("company_lower") @db.VarChar(255)
+  location        String?            @db.VarChar(255)
+  jobUrl          String?            @map("job_url")
+  status          application_status @default(Saved)
+  priority        priority_level?    @default(Medium)
+  positionLevel   position_level?    @default(Unknown) @map("position_level")
+  jobType         job_type?          @default(Unknown) @map("job_type")
+  remote          remote_type?       @default(Unknown)
+  techStack       String[]           @map("tech_stack")
+  notes           String?
+  tags            String[]
+  statusOrder     Int?               @map("status_order")
+  refusedAt       DateTime?          @map("refused_at") @db.Timestamptz(6)
+  createdAt       DateTime?          @default(now()) @map("created_at") @db.Timestamptz(6)
+  appliedAt       DateTime?          @map("applied_at") @db.Timestamptz(6)
+  lastActionAt    DateTime?          @default(now()) @map("last_action_at") @db.Timestamptz(6)
+  nextActionAt    DateTime?          @map("next_action_at") @db.Timestamptz(6)
+  deadlineAt      DateTime?          @map("deadline_at") @db.Timestamptz(6)
+  statusUpdatedAt DateTime?          @default(now()) @map("status_updated_at") @db.Timestamptz(6)
+  updatedAt       DateTime?          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company_id      String?            @db.Uuid
+  companies       companies?         @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  jobTitle        UserJobTitle?      @relation(fields: [titleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  statusEvents    StatusEvent[]
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobTitle     UserJobTitle?  @relation(fields: [titleId], references: [id])
-  statusEvents StatusEvent[]
-
+  @@index([companyLower], map: "idx_applications_company_lower")
+  @@index([createdAt(sort: Desc)], map: "idx_applications_created_at")
+  @@index([status], map: "idx_applications_status")
+  @@index([statusUpdatedAt(sort: Desc)], map: "idx_applications_status_updated_at")
+  @@index([titleId], map: "idx_applications_title_id")
+  @@index([userId, companyLower], map: "idx_applications_user_company")
+  @@index([userId], map: "idx_applications_user_id")
   @@map("applications")
 }
 
 model StatusEvent {
-  id            String   @id @default(uuid())
-  applicationId String   @map("application_id")
-  userId        String   @map("user_id")
-  eventType     String   @default("status-change") @map("event_type")
-  fromStatus    ApplicationStatus? @map("from_status")
-  toStatus      ApplicationStatus  @map("to_status")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id            String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  applicationId String              @map("application_id") @db.Uuid
+  userId        String              @map("user_id") @db.Uuid
+  eventType     String              @default("status-change") @map("event_type") @db.VarChar(50)
+  fromStatus    application_status? @map("from_status")
+  toStatus      application_status  @map("to_status")
+  createdAt     DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
+  application   Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  @@index([applicationId, createdAt], map: "idx_status_events_app_chronological")
+  @@index([applicationId], map: "idx_status_events_application_id")
+  @@index([createdAt], map: "idx_status_events_created_at")
+  @@index([userId], map: "idx_status_events_user_id")
   @@map("status_events")
 }
 
-// Enums matching PostgreSQL schema
-enum ApplicationStatus {
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model companies {
+  id           String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String        @unique @db.VarChar(255)
+  name_lower   String?       @default(dbgenerated("lower((name)::text)")) @db.VarChar(255)
+  website      String?       @db.VarChar(255)
+  industry     String?       @db.VarChar(255)
+  size_range   String?       @db.VarChar(50)
+  location     String?       @db.VarChar(255)
+  notes        String?
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  applications Application[]
+
+  @@index([name_lower], map: "idx_companies_name_lower")
+}
+
+model default_job_titles {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title             String    @unique @db.VarChar(255)
+  sort_order        Int?      @default(0)
+  is_system_default Boolean?  @default(true)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+enum application_status {
   Saved
   Applied
   OA
@@ -102,14 +137,15 @@ enum ApplicationStatus {
   Closed
 }
 
-enum PriorityLevel {
+enum job_type {
   Unknown
-  High
-  Medium
-  Low
+  FT
+  Intern
+  Contract
+  Co_op    @map("Co-op")
 }
 
-enum PositionLevel {
+enum position_level {
   Unknown
   NG
   Junior
@@ -118,15 +154,14 @@ enum PositionLevel {
   Staff
 }
 
-enum JobType {
+enum priority_level {
   Unknown
-  FT
-  Intern
-  Contract
-  CoOp @map("Co-op")
+  High
+  Medium
+  Low
 }
 
-enum RemoteType {
+enum remote_type {
   Unknown
   Remote
   Hybrid

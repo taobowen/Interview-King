@@ -36,8 +36,8 @@ export interface DbUser {
   uid: string; 
   email?: string | null;
   displayName?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 
 // Upsert user: find existing or create new user from Firebase token
