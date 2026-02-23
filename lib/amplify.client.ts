@@ -85,13 +85,14 @@ export async function getCurrentUserInfo() {
   try {
     const user = await getCurrentUser();
     const session = await fetchAuthSession();
+    const accessToken = session.tokens?.accessToken;
     const idToken = session.tokens?.idToken;
     
     if (!idToken) {
       throw new Error('No ID token available');
     }
 
-    // Extract claims from ID token
+    // Extract claims from ID token (for user info)
     const claims = idToken.payload;
     
     return {

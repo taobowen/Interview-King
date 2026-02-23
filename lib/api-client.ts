@@ -4,21 +4,21 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 // Helper to make authenticated API requests to Next.js API routes
-// Uses id_token (recommended for API Gateway JWT authorizer)
+// Uses access_token (recommended for API authorization)
 export async function authenticatedFetch(url: string, options: RequestInit = {}) {
-  // Get current user's ID token from Amplify (id_token for user identity)
+  // Get current user's access token from Amplify (access_token for API authorization)
   let token: string;
   try {
     const session = await fetchAuthSession();
-    const idToken = session.tokens?.idToken?.toString();
+    const accessToken = session.tokens?.accessToken?.toString();
     
-    if (!idToken) {
-      throw new Error('No ID token available');
+    if (!accessToken) {
+      throw new Error('No access token available');
     }
     
-    token = idToken; // Using id_token for user identity verification
+    token = accessToken; // Using access_token for API authorization
   } catch (error) {
-    console.error('Failed to get ID token:', error);
+    console.error('Failed to get access token:', error);
     throw new Error('User not authenticated');
   }
 
@@ -40,7 +40,7 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
     try {
       // Token might be expired, try to refresh by getting a new session
       const refreshedSession = await fetchAuthSession({ forceRefresh: true });
-      const refreshedToken = refreshedSession.tokens?.idToken?.toString();
+      const refreshedToken = refreshedSession.tokens?.accessToken?.toString();
       
       if (!refreshedToken) {
         throw new Error('Failed to refresh token');
