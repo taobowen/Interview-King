@@ -1,13 +1,15 @@
 // lib/auth-middleware.ts
-// Middleware for API routes to handle token verification and user resolution
+// Middleware for Next.js API routes (/api/*) to handle token verification and user resolution
+// NOTE: This is for Next.js server routes only, NOT for API Gateway routes
+// API Gateway should handle its own JWT verification via JWT authorizer
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyFirebaseToken, type VerifiedUser } from './firebase-admin';
+import { verifyCognitoToken, type VerifiedUser } from './amplify-admin';
 import { upsertUser, type DbUser } from './db';
 
 export interface AuthenticatedRequest extends NextRequest {
   user: DbUser;
-  firebaseUser: VerifiedUser;
+  cognitoUser: VerifiedUser;
 }
 
 // Middleware to verify token and resolve user
@@ -16,16 +18,16 @@ export function withAuth(
 ) {
   return async (req: NextRequest): Promise<NextResponse> => {
     try {
-      // Step 1: Verify Firebase token
-      const firebaseUser = await verifyFirebaseToken(req);
+      // Step 1: Verify Cognito token
+      const cognitoUser = await verifyCognitoToken(req);
       
       // Step 2: Upsert user in PostgreSQL (find existing or create new)
-      const dbUser = await upsertUser(firebaseUser);
+      const dbUser = await upsertUser(cognitoUser);
       
       // Step 3: Attach user info to request and call handler
       const authenticatedReq = Object.assign(req, {
         user: dbUser,
-        firebaseUser: firebaseUser,
+        cognitoUser: cognitoUser,
       }) as AuthenticatedRequest;
       
       return await handler(authenticatedReq);
@@ -44,12 +46,12 @@ export function withAuth(
 }
 
 // Alternative: Manual authentication for more control
-export async function authenticate(req: NextRequest): Promise<{ user: DbUser; firebaseUser: VerifiedUser }> {
-  // Step 1: Verify Firebase token
-  const firebaseUser = await verifyFirebaseToken(req);
+export async function authenticate(req: NextRequest): Promise<{ user: DbUser; cognitoUser: VerifiedUser }> {
+  // Step 1: Verify Cognito token
+  const cognitoUser = await verifyCognitoToken(req);
   
   // Step 2: Upsert user in PostgreSQL
-  const dbUser = await upsertUser(firebaseUser);
+  const dbUser = await upsertUser(cognitoUser);
   
-  return { user: dbUser, firebaseUser };
+  return { user: dbUser, cognitoUser };
 }

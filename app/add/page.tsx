@@ -2,7 +2,7 @@
 import ApplicationForm from '../../components/ApplicationForm';
 import { useUser } from '../../lib/useUser';
 import { useEffect, useState } from 'react';
-import { auth } from '../../lib/firebase.client';
+import { authenticatedFetch } from '../../lib/api-client';
 
 export default function AddPage() {
     const { uid, loading } = useUser();
@@ -12,17 +12,9 @@ export default function AddPage() {
         if (!uid) return;
         
         try {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            const token = await user.getIdToken();
             const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
             
-            const response = await fetch(`/api/applications`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
+            const response = await authenticatedFetch(`/api/applications`);
             
             if (response.ok) {
                 const data = await response.json();

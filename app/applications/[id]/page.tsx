@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '../../../lib/useUser';
-import { auth } from '../../../lib/firebase.client';
+import { authenticatedFetch } from '../../../lib/api-client';
 import type { ApplicationDoc, Status } from '../../../lib/types';
 import { tsToDate } from '../../../lib/utils';
 
@@ -25,15 +25,7 @@ export default function EditApplicationPage() {
         (async () => {
             try {
                 // Fetch application from PostgreSQL API
-                const user = auth.currentUser;
-                if (!user) return;
-                
-                const token = await user.getIdToken();
-                const response = await fetch(`/api/applications?id=${id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
+                const response = await authenticatedFetch(`/api/applications?id=${id}`);
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -59,10 +51,6 @@ export default function EditApplicationPage() {
         if (!uid || !id || !form) return;
         
         try {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            const token = await user.getIdToken();
             const was = initialStatus.current;
             const now = (form.status || 'Saved') as Status;
             
@@ -77,11 +65,10 @@ export default function EditApplicationPage() {
             };
 
             // Update application via PostgreSQL API
-            const response = await fetch(`/api/applications?id=${id}`, {
+            const response = await authenticatedFetch(`/api/applications?id=${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(updateData),
             });
@@ -89,11 +76,10 @@ export default function EditApplicationPage() {
             if (response.ok) {
                 // If status changed, create status event via API
                 if (was && was !== now) {
-                    await fetch('/api/status-events', {
+                    await authenticatedFetch('/api/status-events', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`,
                         },
                         body: JSON.stringify({
                             appId: id,

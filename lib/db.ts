@@ -4,7 +4,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import type { VerifiedUser } from './firebase-admin';
+import type { VerifiedUser } from './amplify-admin';
 
 // Initialize PostgreSQL connection pool
 const connectionString = process.env.DATABASE_URL!;
@@ -40,7 +40,7 @@ export interface DbUser {
   updatedAt: Date | null;
 }
 
-// Upsert user: find existing or create new user from Firebase token
+// Upsert user: find existing or create new user from Cognito token
 export async function upsertUser(verifiedUser: VerifiedUser): Promise<DbUser> {
   try {
     const user = await prisma.user.upsert({
@@ -65,8 +65,8 @@ export async function upsertUser(verifiedUser: VerifiedUser): Promise<DbUser> {
   }
 }
 
-// Get user by Firebase UID
-export async function getUserByFirebaseUid(uid: string): Promise<DbUser | null> {
+// Get user by Cognito UID
+export async function getUserByCognitoUid(uid: string): Promise<DbUser | null> {
   return await prisma.user.findUnique({
     where: { uid },
   });

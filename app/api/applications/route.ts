@@ -131,6 +131,51 @@ export async function PATCH(req: NextRequest) {
     }
     
     const body = await req.json();
+    console.log('PATCH request body:', JSON.stringify(body, null, 2));
+    console.log('Raw URL:', req.url);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    
+    // Check for data corruption/transformation issues
+    if (body.refusedAt && typeof body.refusedAt === 'string' && 
+        (body.refusedAt === 'Applied' || body.refusedAt === 'Rejected' || 
+         ['Applied', 'Rejected', 'Saved', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Closed'].includes(body.refusedAt))) {
+      console.log('WARNING: refusedAt contains a status value instead of a date:', body.refusedAt);
+      // This looks like data corruption - ignore refusedAt field
+      delete body.refusedAt;
+    }
+    
+    // Prepare update data with improved handling
+    const updateData: any = {};
+    
+    if (body.status !== undefined) {
+      updateData.status = body.status;
+      updateData.statusUpdatedAt = new Date(); // Update timestamp when status changes
+    }
+    if (body.priority !== undefined) updateData.priority = body.priority;
+    if (body.notes !== undefined) updateData.notes = body.notes;
+    if (body.refusedAt !== undefined) {
+      console.log('Processing refusedAt - value:', body.refusedAt, 'type:', typeof body.refusedAt);
+      if (body.refusedAt === null || body.refusedAt === "") {
+        updateData.refusedAt = null;
+      } else {
+        const refusedDate = new Date(body.refusedAt);
+        if (isNaN(refusedDate.getTime())) {
+          console.log('Invalid date detected:', body.refusedAt);
+          return NextResponse.json(
+            { 
+              error: 'Invalid refusedAt date format',
+              received: body.refusedAt,
+              type: typeof body.refusedAt,
+              fullBody: body
+            },
+            { status: 400 }
+          );
+        }
+        updateData.refusedAt = refusedDate;
+      }
+    }
+    
+    console.log('Final updateData:', JSON.stringify(updateData, null, 2));
     
     // Update application (only if user owns it)
     const updatedApplication = await prisma.application.updateMany({
@@ -138,12 +183,7 @@ export async function PATCH(req: NextRequest) {
         id: applicationId,
         userId: user.id,
       },
-      data: {
-        ...(body.status && { status: body.status }),
-        ...(body.priority && { priority: body.priority }),
-        ...(body.notes && { notes: body.notes }),
-        ...(body.refusedAt && { refusedAt: new Date(body.refusedAt) }),
-      },
+      data: updateData,
     });
     
     if (updatedApplication.count === 0) {
@@ -168,20 +208,31 @@ export async function PATCH(req: NextRequest) {
       },
     });
     
+    // Ensure we found the application
+    if (!application) {
+      console.error(`Application ${applicationId} not found after successful update for user ${user.id}`);
+      return NextResponse.json(
+        { error: 'Application data could not be retrieved after update' },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json({
       success: true,
       application: {
-        id: application?.id,
-        title: application?.jobTitle?.title || application?.titleText,
-        company: application?.company,
-        location: application?.location,
-        status: application?.status,
-        priority: application?.priority,
-        notes: application?.notes,
+        id: application.id,
+        title: application.jobTitle?.title || application.titleText,
+        company: application.company,
+        location: application.location,
+        status: application.status,
+        priority: application.priority,
+        notes: application.notes,
       }
     });
     
   } catch (error) {
+    console.error('PATCH /api/applications error:', error);
+    
     if (error instanceof Error && error.message.includes('token')) {
       return NextResponse.json(
         { error: 'Unauthorized', message: error.message },
@@ -190,7 +241,10 @@ export async function PATCH(req: NextRequest) {
     }
     
     return NextResponse.json(
-      { error: 'Failed to update application' },
+      { 
+        error: 'Failed to update application',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

@@ -1,23 +1,25 @@
 'use client';
 
 // lib/api-client.ts
-import { auth } from './firebase.client';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
-// Helper to make authenticated API requests
+// Helper to make authenticated API requests to Next.js API routes
+// Uses id_token (recommended for API Gateway JWT authorizer)
 export async function authenticatedFetch(url: string, options: RequestInit = {}) {
-  // Get current user's ID token
-  const user = auth.currentUser;
-  
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-
+  // Get current user's ID token from Amplify (id_token for user identity)
   let token: string;
   try {
-    token = await user.getIdToken();
+    const session = await fetchAuthSession();
+    const idToken = session.tokens?.idToken?.toString();
+    
+    if (!idToken) {
+      throw new Error('No ID token available');
+    }
+    
+    token = idToken; // Using id_token for user identity verification
   } catch (error) {
     console.error('Failed to get ID token:', error);
-    throw new Error('Failed to authenticate request');
+    throw new Error('User not authenticated');
   }
 
   // Prepare headers with Authorization token
@@ -36,8 +38,14 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
   // Handle authentication errors with token refresh
   if (response.status === 401) {
     try {
-      // Token might be expired, try to refresh
-      const refreshedToken = await user.getIdToken(true); // Force refresh
+      // Token might be expired, try to refresh by getting a new session
+      const refreshedSession = await fetchAuthSession({ forceRefresh: true });
+      const refreshedToken = refreshedSession.tokens?.idToken?.toString();
+      
+      if (!refreshedToken) {
+        throw new Error('Failed to refresh token');
+      }
+      
       const retryResponse = await fetch(url, {
         ...options,
         headers: {
