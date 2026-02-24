@@ -34,18 +34,6 @@ const amplifyConfig = {
 
 Amplify.configure(amplifyConfig);
 
-// Google Sign In function
-export async function signInGoogle() {
-  try {
-    await signInWithRedirect({
-      provider: 'Google'
-    });
-  } catch (error) {
-    console.error('Google sign-in error:', error);
-    throw error;
-  }
-}
-
 // General Hosted UI login (will show Cognito login page with all configured providers)
 export async function signInHostedUI() {
   try {

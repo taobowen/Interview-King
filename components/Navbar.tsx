@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { signInGoogle, signInHostedUI, signOutAll, getHostedUIUrl } from '../lib/amplify.client';
+import { signInHostedUI, signOutAll, getHostedUIUrl } from '../lib/amplify.client';
 import { useUser } from '../lib/useUser';
 
 export default function Navbar() {
@@ -36,10 +36,7 @@ export default function Navbar() {
               <button onClick={signOutAll} className="px-3 py-1.5 rounded bg-slate-900 text-white">Sign out</button>
             </>
           ) : (
-            <div className="flex gap-2">
-              <button onClick={signInHostedUI} className="px-3 py-1.5 rounded bg-blue-600 text-white">Sign in</button>
-              <button onClick={signInGoogle} className="px-3 py-1.5 rounded bg-slate-900 text-white">Google</button>
-            </div>
+            <button onClick={signInHostedUI} className="px-3 py-1.5 rounded bg-blue-600 text-white">Sign in</button>
           )}
         </nav>
       </div>

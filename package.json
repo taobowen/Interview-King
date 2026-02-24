@@ -4,35 +4,26 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build --turbopack",
-    "start": "next start",
-    "postinstall": "prisma generate"
+    "build": "next build --turbopack",
+    "start": "next start"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.15.0",
-    "@prisma/adapter-pg": "^7.4.0",
-    "@prisma/client": "^7.4.0",
     "aws-amplify": "^6.16.2",
-    "jsonwebtoken": "^9.0.3",
-    "jwks-rsa": "^3.2.2",
     "next": "15.5.9",
     "papaparse": "^5.5.3",
-    "pg": "^8.18.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^3.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.16",
-    "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
-    "prisma": "^7.4.0",
     "tailwindcss": "^4.1.13",
     "typescript": "^5"
   }
