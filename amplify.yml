@@ -5,13 +5,9 @@ frontend:
       commands:
         - npm ci
         # Create .env.production with environment variables for SSR runtime
-        - echo "FIREBASE_SERVICE_ACCOUNT_KEY=$FIREBASE_SERVICE_ACCOUNT_KEY" >> .env.production
+        - echo "API_BASE_URL=$API_BASE_URL" >> .env.production
         - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
-        - echo "NEXT_PUBLIC_FB_API_KEY=$NEXT_PUBLIC_FB_API_KEY" >> .env.production
-        - echo "NEXT_PUBLIC_FB_AUTH_DOMAIN=$NEXT_PUBLIC_FB_AUTH_DOMAIN" >> .env.production
-        - echo "NEXT_PUBLIC_FB_PROJECT_ID=$NEXT_PUBLIC_FB_PROJECT_ID" >> .env.production
         - echo "NEXT_PUBLIC_SITE_DOMAIN=$NEXT_PUBLIC_SITE_DOMAIN" >> .env.production
-        - echo "NEXT_PUBLIC_FB_STORAGE_BUCKET=$NEXT_PUBLIC_FB_STORAGE_BUCKET" >> .env.production
     build:
       commands:
         - npm run build
