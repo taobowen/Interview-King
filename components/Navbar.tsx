@@ -36,7 +36,7 @@ export default function Navbar() {
               <button onClick={signOutAll} className="px-3 py-1.5 rounded bg-slate-900 text-white">Sign out</button>
             </>
           ) : (
-            <button onClick={signInHostedUI} className="px-3 py-1.5 rounded bg-blue-600 text-white">Sign in</button>
+            <button onClick={signInHostedUI} className="px-3 py-1.5 rounded bg-blue-600 text-white">Sign in / Sign up</button>
           )}
         </nav>
       </div>
