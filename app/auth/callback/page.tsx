@@ -1,12 +1,46 @@
 // app/auth/callback/page.tsx  (App Router)
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Hub } from 'aws-amplify/utils';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 
 export default function AuthCallback() {
   const router = useRouter();
+  const [status, setStatus] = useState('Signing you in…');
+
+  // Sync user to database after successful authentication
+  const syncUser = async () => {
+    try {
+      setStatus('Setting up your account…');
+      const session = await fetchAuthSession();
+      const token = session.tokens?.accessToken?.toString();
+      
+      if (!token) {
+        throw new Error('No access token found');
+      }
+
+      const response = await fetch('/api/users/sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('User sync failed:', await response.text());
+        // Continue anyway - user might already be synced
+      }
+
+      setStatus('Redirecting…');
+      router.replace('/');
+    } catch (error) {
+      console.error('Failed to sync user:', error);
+      // Continue anyway - don't block login
+      router.replace('/');
+    }
+  };
 
   useEffect(() => {
     // Listen for auth hub events
@@ -14,7 +48,7 @@ export default function AuthCallback() {
       switch (payload.event) {
         case 'signedIn':
           console.log('User successfully signed in');
-          router.replace('/');
+          syncUser();
           break;
         case 'signInWithRedirect_failure':
           console.error('Sign in failed:', payload);
@@ -29,7 +63,7 @@ export default function AuthCallback() {
     const checkAuth = async () => {
       try {
         await getCurrentUser();
-        router.replace('/');
+        await syncUser();
       } catch (error) {
         console.log('No authenticated user found');
         // Let Hub listener handle the auth flow
@@ -43,7 +77,7 @@ export default function AuthCallback() {
 
   return (
     <div className="p-4 text-center">
-      <p className="text-lg">Signing you in…</p>
+      <p className="text-lg">{status}</p>
       <div className="mt-4">
         <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
       </div>

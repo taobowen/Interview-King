@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "postcss.config.mjs"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "lib/db.ts", "lib/auth-middleware.ts", "lib/amplify-admin.ts", "MIGRATION_EXAMPLES.ts"]
 }
