@@ -105,7 +105,7 @@ export default function ApplicationTable() {
             // Update application status
             const updateData: any = { status: next };
             if (next === 'Rejected' && current) {
-                updateData.refusedAt = current; // store where rejection happened
+                updateData.refusedAt = new Date().toISOString(); // timestamp when rejection happened
             }
             
             const response = await apiClient.patch(`/api/applications?id=${id}`, updateData);

@@ -13,6 +13,7 @@ interface JobTitle {
 
 export default function ApplicationForm({ uid, onSaved }: { uid: string | undefined; onSaved?: () => void }) {
 const [form, setForm] = useState<Partial<ApplicationDoc>>({ status: 'Applied', title: 'Unknown', location: 'Unknown', positionLevel: 'Unknown' });
+const [selectedJobTitleId, setSelectedJobTitleId] = useState<string>('');
 const [loading, setLoading] = useState(false);
 const [priorCount, setPriorCount] = useState(0);
 const [priorSamples, setPriorSamples] = useState<{status?: string; title?: string; createdAt?: any}[]>([]);
@@ -131,21 +132,36 @@ const update = (k: keyof ApplicationDoc, v: any) => setForm(s => ({ ...s, [k]: v
 
 const save = async () => {
     if (!uid) return alert('Please sign in');
+    
+    // Validate: Must have either custom title text or selected job title
+    if (!form.title && !selectedJobTitleId) {
+        alert('Please select or enter a job title');
+        return;
+    }
+    
     setLoading(true);
     
     try {
-        const response = await apiClient.post('/api/applications', {
-            title: form.title,
+        const payload: any = {
             company: form.company,
             location: form.location,
-            jobUrl: form.jobUrl,
+            link: form.jobUrl,
             status: form.status,
-            positionLevel: form.positionLevel,
             notes: form.notes
-        });
+        };
+        
+        // Send either titleId (if selected from dropdown) or titleText (if custom)
+        if (selectedJobTitleId) {
+            payload.titleId = selectedJobTitleId;
+        } else {
+            payload.titleText = form.title;
+        }
+        
+        const response = await apiClient.post('/api/applications', payload);
         
         if (!response.ok) {
-            throw new Error('Failed to save application');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to save application');
         }
         
         setForm({ 
@@ -157,6 +173,7 @@ const save = async () => {
             jobUrl: '', 
             notes: '' 
         });
+        setSelectedJobTitleId('');
         onSaved?.();
     } catch (error) {
         console.error('Failed to save application:', error);
@@ -190,10 +207,24 @@ return (
         <input className="w-full border rounded px-3 py-2" placeholder="Job URL" value={form.jobUrl||''} onChange={e=>update('jobUrl', e.target.value)} />
         <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Job title</label>
-            <select className="border rounded px-2 py-1 flex-1" value={form.title||''} onChange={e=>update('title', e.target.value)}>
-                <option value="">Select...</option>
-                {jobTitles.map(jt => <option key={jt.id} value={jt.title}>{jt.title}</option>)}
-                {jobTitles.length === 0 && <option value="Unknown">Unknown</option>}
+            <select 
+                className="border rounded px-2 py-1 flex-1" 
+                value={selectedJobTitleId} 
+                onChange={e => {
+                    const id = e.target.value;
+                    setSelectedJobTitleId(id);
+                    if (id) {
+                        const selectedTitle = jobTitles.find(jt => jt.id === id);
+                        if (selectedTitle) {
+                            update('title', selectedTitle.title);
+                        }
+                    } else {
+                        update('title', '');
+                    }
+                }}
+            >
+                <option value="">Select or enter custom...</option>
+                {jobTitles.map(jt => <option key={jt.id} value={jt.id}>{jt.title}</option>)}
             </select>
             <button 
                 type="button"
@@ -203,6 +234,16 @@ return (
                 Manage
             </button>
         </div>
+        
+        {/* Custom title text input (shown when no job title selected) */}
+        {!selectedJobTitleId && (
+            <input 
+                className="w-full border rounded px-3 py-2" 
+                placeholder="Or enter custom job title..." 
+                value={form.title||''} 
+                onChange={e=>update('title', e.target.value)} 
+            />
+        )}
         
         {/* Job Title Management Panel */}
         {showJobTitleManager && (

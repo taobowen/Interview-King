@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# backend
+/lambda
+
 # production
 /build
 

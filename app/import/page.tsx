@@ -6,15 +6,15 @@ import { apiClient } from '@/lib/api-client';
 import type { ApplicationDoc } from '@/lib/types';
 
 const REQUIRED = ['title','company','status'];
-const OPTIONAL = ['location','jobUrl','createdAt','notes','rejectionReason','priority','jobType','remote','tags'];
+const OPTIONAL = ['location','jobUrl','createdAt','notes','priority','jobType','remote','tags','positionLevel'];
 
 function normalize(row:any): Partial<ApplicationDoc> {
   const o:any={ title:row.title?.trim()||'', company:row.company?.trim()||'', status:row.status?.trim()||'Saved' };
   if(row.location) o.location=row.location.trim();
   if(row.jobUrl) o.jobUrl=row.jobUrl.trim();
   if(row.notes) o.notes=row.notes;
-  if(row.rejectionReason) o.rejectionReason=row.rejectionReason;
   if(row.priority) o.priority=row.priority;
+  if(row.positionLevel) o.positionLevel=row.positionLevel;
   if(row.jobType) o.jobType=row.jobType;
   if(row.remote) o.remote=row.remote;
   if(row.tags) o.tags=String(row.tags).split(/[,;|]/).map((s:string)=>s.trim()).filter(Boolean);
@@ -57,10 +57,10 @@ export default function ImportCSV() {
       for(const r of rows) { 
         const normalizedData = normalize(r);
         const response = await apiClient.post('/api/applications', {
-          title: normalizedData.title,
+          titleText: normalizedData.title,  // Use titleText instead of title
           company: normalizedData.company,
           location: normalizedData.location,
-          jobUrl: normalizedData.jobUrl,
+          link: normalizedData.jobUrl,  // Use 'link' to match API expectation
           status: normalizedData.status,
           priority: normalizedData.priority,
           positionLevel: normalizedData.positionLevel,
@@ -123,7 +123,6 @@ export default function ImportCSV() {
               <li><code className="bg-white px-1 rounded">status</code> must be one of: Saved, Applied, OA, Screen, Tech, Onsite, Offer, Accepted, Rejected, Closed</li>
               <li><code className="bg-white px-1 rounded">createdAt</code> accepts ISO string (e.g. 2025-09-17) or milliseconds epoch</li>
               <li><code className="bg-white px-1 rounded">tags</code> can be comma/semicolon/pipe-separated</li>
-              <li>Rejected applications may include <code className="bg-white px-1 rounded">rejectionReason</code> for analytics</li>
             </ul>
           </div>
         </div>
