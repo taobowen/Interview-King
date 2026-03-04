@@ -169,11 +169,11 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
     <div className="rounded border bg-white p-4">
       <h3 className="mb-2 font-semibold">{title}</h3>
       {data.nodes.length === 0 || data.links.length === 0 ? (
-        <div className="h-96 flex items-center justify-center text-slate-500">
-          No data available
+        <div style={{ width: '100%', height: '24rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span className="text-slate-500">No data available</span>
         </div>
       ) : (
-        <div style={{ width: '100%', height: '24rem', minHeight: '24rem', display: 'flex' }}>
+        <div style={{ width: '100%', height: '24rem', minHeight: '24rem', minWidth: '300px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <Sankey 
               data={data}

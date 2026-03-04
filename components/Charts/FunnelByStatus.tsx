@@ -16,14 +16,14 @@ export default function FunnelByStatus({ apps }: { apps: ApplicationDoc[] }) {
 
 	if (data.length === 0) {
 		return (
-			<div className="h-64 flex items-center justify-center text-slate-500">
-				No data available
+			<div style={{ height: '16rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<span className="text-slate-500">No data available</span>
 			</div>
 		);
 	}
 
 	return (
-		<div className="h-64">
+		<div style={{ width: '100%', height: '16rem', minHeight: '16rem' }}>
 			<ResponsiveContainer width="100%" height="100%">
 				<PieChart>
 					<Pie data={data} dataKey="value" nameKey="name" outerRadius={100}>

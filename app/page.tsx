@@ -81,25 +81,17 @@ export default function Dashboard() {
       )}
       
       <KPIs apps={apps} events={events} />
-      <div className="grid md:grid-cols-2 gap-6" style={{ minHeight: '28rem' }}>
-        <div style={{ minHeight: '100%' }}>
-          <ApplicationSankey apps={apps} events={events} title="Overall application progress (Sankey)" />
-        </div>
-        <div style={{ minHeight: '100%' }}>
-          <ApplicationSankey apps={apps} events={events} recentDays={30} title="Recent 30 days application progress (Sankey)" />
-        </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        <ApplicationSankey apps={apps} events={events} title="Overall application progress (Sankey)" />
+        <ApplicationSankey apps={apps} events={events} recentDays={30} title="Recent 30 days application progress (Sankey)" />
       </div>
       <CountsMultiPeriod apps={apps} />
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border p-6" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="bg-white rounded-lg border p-6">
           <h3 className="text-lg font-semibold text-slate-800 mb-4">Application Status Distribution</h3>
-          <div style={{ flex: 1, minHeight: '16rem' }}>
-            <FunnelByStatus apps={apps} />
-          </div>
+          <FunnelByStatus apps={apps} />
         </div>
-        <div style={{ minHeight: '100%' }}>
-          <StatusUpdatesTimeline events={events} />
-        </div>
+        <StatusUpdatesTimeline events={events} />
       </div>
     </div>
   );
