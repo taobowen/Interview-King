@@ -60,9 +60,17 @@ function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {
 
 export default function ApplicationSankey({ apps, events, recentDays, title }: Props) {
   const data = useMemo(() => {
+    if (!apps || apps.length === 0) {
+      return { nodes: [], links: [] };
+    }
 
     const cutoff = recentDays ? new Date(new Date().setDate(new Date().getDate() - recentDays)) : null;
     const sourceApps = cutoff ? apps.filter(a => tsToDate(a.createdAt) >= cutoff) : apps;
+    
+    if (sourceApps.length === 0) {
+      return { nodes: [], links: [] };
+    }
+
     // group events by app
     const byApp: Record<string, StatusEvent[]> = {};
     for (const e of events) {
@@ -71,7 +79,6 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
     }
 
     // nodes: all pipeline stages (Saved removed)
-
     const nodes = [
       { name: 'Start', fill: '#e5e7eb' },
       ...STAGES.map((s) => ({ name: s, fill: STATUS_HEX[s] || '#94a3b8' }))
@@ -86,22 +93,32 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
 
       // Start → first stage (captures entries not inferred from events)
       const first = seq[0];
-      counts[`Start→${first}`] = (counts[`Start→${first}`] || 0) + 1;
+      if (first && idx[first] !== undefined) {
+        counts[`Start→${first}`] = (counts[`Start→${first}`] || 0) + 1;
+      }
 
       // Consecutive stage transitions
       for (let i = 0; i < seq.length - 1; i++) {
         const a = seq[i], b = seq[i + 1];
+        if (!a || !b || idx[a] === undefined || idx[b] === undefined) continue;
         const key = `${a}→${b}`;
         counts[key] = (counts[key] || 0) + 1;
       }
     }
 
-    const links = Object.entries(counts).map(([k, v]) => {
-      const [a, b] = k.split('→') as [Status | 'Start', Status];
-      return { source: idx[a], target: idx[b], value: v };
-    });
-
-
+    const links = Object.entries(counts)
+      .map(([k, v]) => {
+        const [a, b] = k.split('→') as [Status | 'Start', Status];
+        const sourceIdx = idx[a];
+        const targetIdx = idx[b];
+        
+        // Skip invalid links
+        if (sourceIdx === undefined || targetIdx === undefined || !v || v < 0) {
+          return null;
+        }
+        return { source: sourceIdx, target: targetIdx, value: v };
+      })
+      .filter((link): link is { source: number; target: number; value: number } => link !== null);
 
     const data = {
       nodes,
@@ -112,55 +129,73 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
 
   // Custom components with proper keys to fix React warnings
   const renderNode = useCallback((props: any) => {
-    const { x, y, width, height, payload, index } = props;
-    return (
-      <g key={`node-${index}-${payload?.name || index}`}>
-        <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          fill={payload?.fill || '#94a3b8'}
-          rx={2}
-        />
-        <text
-          x={x + width + 8}
-          y={y + height / 2}
-          dy="0.35em"
-          fontSize={12}
-          fill="#374151"
-          textAnchor="start"
-        >
-          {payload?.name}
-        </text>
-      </g>
-    );
+    try {
+      const { x, y, width, height, payload, index } = props;
+      // Validate all required props are numbers
+      if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number') {
+        return <g key={`node-${index}`} />;
+      }
+      return (
+        <g key={`node-${index}-${payload?.name || index}`}>
+          <rect
+            x={x}
+            y={y}
+            width={Math.max(0, width)}
+            height={Math.max(0, height)}
+            fill={payload?.fill || '#94a3b8'}
+            rx={2}
+          />
+          <text
+            x={x + Math.max(0, width) + 8}
+            y={y + Math.max(0, height) / 2}
+            dy="0.35em"
+            fontSize={12}
+            fill="#374151"
+            textAnchor="start"
+          >
+            {payload?.name}
+          </text>
+        </g>
+      );
+    } catch (err) {
+      console.error('renderNode error:', err);
+      return <g />;
+    }
   }, []);
 
   const renderLink = useCallback((props: any) => {
-    const { sourceX, sourceY, targetX, targetY, sourceControlX, targetControlX, linkWidth, index } = props;
-    return (
-      <path
-        key={`link-${index}`}
-        d={`M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
-        fill="none"
-        stroke="#94a3b8"
-        strokeWidth={Math.max(1, linkWidth || 0)}
-        strokeOpacity={0.6}
-      />
-    );
+    try {
+      const { sourceX, sourceY, targetX, targetY, sourceControlX, targetControlX, linkWidth, index } = props;
+      // Validate all required props are numbers
+      if (typeof sourceX !== 'number' || typeof sourceY !== 'number' || typeof targetX !== 'number' || typeof targetY !== 'number') {
+        return <path key={`link-${index}`} d="" />;
+      }
+      return (
+        <path
+          key={`link-${index}`}
+          d={`M${sourceX},${sourceY}C${sourceControlX || sourceX},${sourceY} ${targetControlX || targetX},${targetY} ${targetX},${targetY}`}
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth={Math.max(1, linkWidth || 1)}
+          strokeOpacity={0.6}
+        />
+      );
+    } catch (err) {
+      console.error('renderLink error:', err);
+      return <path d="" />;
+    }
   }, []);
 
   return (
     <div className="rounded border bg-white p-4">
       <h3 className="mb-2 font-semibold">{title}</h3>
-      {Object.keys(data.nodes || {}).length === 0 ? (
+      {data.nodes.length === 0 || data.links.length === 0 ? (
         <div className="h-96 flex items-center justify-center text-slate-500">
           No data available
         </div>
       ) : (
-        <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-96 w-full overflow-hidden">
+          <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
             <Sankey 
               data={data}
               nodePadding={24} 
