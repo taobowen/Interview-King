@@ -108,15 +108,17 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
 
     const links = Object.entries(counts)
       .map(([k, v]) => {
-        const [a, b] = k.split('→') as [Status | 'Start', Status];
+        const parts = k.split('→');
+        if (parts.length !== 2) return null;
+        const [a, b] = parts as [Status | 'Start', Status];
         const sourceIdx = idx[a];
         const targetIdx = idx[b];
         
-        // Skip invalid links
-        if (sourceIdx === undefined || targetIdx === undefined || !v || v < 0) {
+        // Skip invalid or self-referencing links
+        if (sourceIdx === undefined || targetIdx === undefined || !v || v < 0 || sourceIdx === targetIdx) {
           return null;
         }
-        return { source: sourceIdx, target: targetIdx, value: v };
+        return { source: sourceIdx, target: targetIdx, value: Math.max(0, v) };
       })
       .filter((link): link is { source: number; target: number; value: number } => link !== null);
 
@@ -129,61 +131,38 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
 
   // Custom components with proper keys to fix React warnings
   const renderNode = useCallback((props: any) => {
-    try {
-      const { x, y, width, height, payload, index } = props;
-      // Validate all required props are numbers
-      if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number') {
-        return <g key={`node-${index}`} />;
-      }
-      return (
-        <g key={`node-${index}-${payload?.name || index}`}>
-          <rect
-            x={x}
-            y={y}
-            width={Math.max(0, width)}
-            height={Math.max(0, height)}
-            fill={payload?.fill || '#94a3b8'}
-            rx={2}
-          />
-          <text
-            x={x + Math.max(0, width) + 8}
-            y={y + Math.max(0, height) / 2}
-            dy="0.35em"
-            fontSize={12}
-            fill="#374151"
-            textAnchor="start"
-          >
-            {payload?.name}
+    const { x, y, width, height, payload, index } = props;
+    if (!payload || typeof x !== 'number' || typeof y !== 'number') return <g />;
+    const w = Math.max(0, width || 0);
+    const h = Math.max(0, height || 0);
+    return (
+      <g>
+        <rect x={x} y={y} width={w} height={h} fill={payload.fill || '#94a3b8'} rx={2} />
+        {w > 0 && h > 0 && (
+          <text x={x + w + 8} y={y + h / 2} dy="0.35em" fontSize={12} fill="#374151" textAnchor="start">
+            {payload.name}
           </text>
-        </g>
-      );
-    } catch (err) {
-      console.error('renderNode error:', err);
-      return <g />;
-    }
+        )}
+      </g>
+    );
   }, []);
 
   const renderLink = useCallback((props: any) => {
-    try {
-      const { sourceX, sourceY, targetX, targetY, sourceControlX, targetControlX, linkWidth, index } = props;
-      // Validate all required props are numbers
-      if (typeof sourceX !== 'number' || typeof sourceY !== 'number' || typeof targetX !== 'number' || typeof targetY !== 'number') {
-        return <path key={`link-${index}`} d="" />;
-      }
-      return (
-        <path
-          key={`link-${index}`}
-          d={`M${sourceX},${sourceY}C${sourceControlX || sourceX},${sourceY} ${targetControlX || targetX},${targetY} ${targetX},${targetY}`}
-          fill="none"
-          stroke="#94a3b8"
-          strokeWidth={Math.max(1, linkWidth || 1)}
-          strokeOpacity={0.6}
-        />
-      );
-    } catch (err) {
-      console.error('renderLink error:', err);
+    const { sourceX, sourceY, targetX, targetY, sourceControlX, targetControlX, linkWidth } = props;
+    if (typeof sourceX !== 'number' || typeof sourceY !== 'number' || typeof targetX !== 'number' || typeof targetY !== 'number') {
       return <path d="" />;
     }
+    const cX1 = typeof sourceControlX === 'number' ? sourceControlX : sourceX;
+    const cX2 = typeof targetControlX === 'number' ? targetControlX : targetX;
+    return (
+      <path
+        d={`M${sourceX},${sourceY}C${cX1},${sourceY} ${cX2},${targetY} ${targetX},${targetY}`}
+        fill="none"
+        stroke="#94a3b8"
+        strokeWidth={Math.max(0.5, linkWidth || 1)}
+        strokeOpacity={0.6}
+      />
+    );
   }, []);
 
   return (
@@ -194,8 +173,8 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
           No data available
         </div>
       ) : (
-        <div className="h-96 w-full overflow-hidden">
-          <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
+        <div style={{ width: '100%', height: '24rem', minHeight: '24rem', display: 'flex' }}>
+          <ResponsiveContainer width="100%" height="100%">
             <Sankey 
               data={data}
               nodePadding={24} 
