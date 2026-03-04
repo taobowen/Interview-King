@@ -9,6 +9,7 @@ import FunnelByStatus from '@/components/Charts/FunnelByStatus';
 import ApplicationSankey from '@/components/Charts/ApplicationSankey';
 import KPIs from '@/components/KPI';
 import { useUser } from '@/lib/useUser';
+import { ChartErrorBoundary } from '@/components/Charts/ChartErrorBoundary';
 
 export default function Dashboard() {
   const [apps, setApps] = useState<ApplicationDoc[]>([]);
@@ -82,8 +83,12 @@ export default function Dashboard() {
       
       <KPIs apps={apps} events={events} />
       <div className="grid md:grid-cols-2 gap-6">
-        <ApplicationSankey apps={apps} events={events} title="Overall application progress (Sankey)" />
-        <ApplicationSankey apps={apps} events={events} recentDays={30} title="Recent 30 days application progress (Sankey)" />
+        <ChartErrorBoundary>
+          <ApplicationSankey apps={apps} events={events} title="Overall application progress (Sankey)" />
+        </ChartErrorBoundary>
+        <ChartErrorBoundary>
+          <ApplicationSankey apps={apps} events={events} recentDays={30} title="Recent 30 days application progress (Sankey)" />
+        </ChartErrorBoundary>
       </div>
       <CountsMultiPeriod apps={apps} />
       <div className="grid md:grid-cols-2 gap-6">

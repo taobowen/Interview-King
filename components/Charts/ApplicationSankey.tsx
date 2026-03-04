@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip } from 'recharts';
 import type { ApplicationDoc, StatusEvent, Status } from '@/lib/types';
 import { STATUS_HEX, STAGES } from '@/lib/status';
@@ -59,74 +59,138 @@ function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {
 }
 
 export default function ApplicationSankey({ apps, events, recentDays, title }: Props) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [apps, events, recentDays]);
+
   const data = useMemo(() => {
-    if (!apps || apps.length === 0) {
-      return { nodes: [], links: [] };
-    }
-
-    const cutoff = recentDays ? new Date(new Date().setDate(new Date().getDate() - recentDays)) : null;
-    const sourceApps = cutoff ? apps.filter(a => tsToDate(a.createdAt) >= cutoff) : apps;
-    
-    if (sourceApps.length === 0) {
-      return { nodes: [], links: [] };
-    }
-
-    // group events by app
-    const byApp: Record<string, StatusEvent[]> = {};
-    for (const e of events) {
-      if (!e.applicationId) continue;
-      (byApp[e.applicationId] ||= []).push(e);
-    }
-
-    // nodes: all pipeline stages (Saved removed)
-    const nodes = [
-      { name: 'Start', fill: '#e5e7eb' },
-      ...STAGES.map((s) => ({ name: s, fill: STATUS_HEX[s] || '#94a3b8' }))
-    ];
-    const idx: Record<Status | 'Start', number> = { Start: 0 } as Record<Status | 'Start', number>;
-    STAGES.forEach((s, i) => { idx[s] = i + 1; });
-
-    const counts: Record<string, number> = {};
-    for (const app of sourceApps) {
-      const seq = buildStageSequence(app, byApp[app.id || ''] || []);
-      if (!seq.length) continue;
-
-      // Start → first stage (captures entries not inferred from events)
-      const first = seq[0];
-      if (first && idx[first] !== undefined) {
-        counts[`Start→${first}`] = (counts[`Start→${first}`] || 0) + 1;
+    try {
+      if (!apps || apps.length === 0) {
+        return { nodes: [], links: [], valid: true };
       }
 
-      // Consecutive stage transitions
-      for (let i = 0; i < seq.length - 1; i++) {
-        const a = seq[i], b = seq[i + 1];
-        if (!a || !b || idx[a] === undefined || idx[b] === undefined) continue;
-        const key = `${a}→${b}`;
-        counts[key] = (counts[key] || 0) + 1;
+      const cutoff = recentDays ? new Date(new Date().setDate(new Date().getDate() - recentDays)) : null;
+      const sourceApps = cutoff ? apps.filter(a => tsToDate(a.createdAt) >= cutoff) : apps;
+      
+      if (sourceApps.length === 0) {
+        return { nodes: [], links: [], valid: true };
       }
-    }
 
-    const links = Object.entries(counts)
-      .map(([k, v]) => {
-        const parts = k.split('→');
-        if (parts.length !== 2) return null;
-        const [a, b] = parts as [Status | 'Start', Status];
-        const sourceIdx = idx[a];
-        const targetIdx = idx[b];
-        
-        // Skip invalid or self-referencing links
-        if (sourceIdx === undefined || targetIdx === undefined || !v || v < 0 || sourceIdx === targetIdx) {
-          return null;
+      // group events by app
+      const byApp: Record<string, StatusEvent[]> = {};
+      for (const e of events) {
+        if (!e.applicationId) continue;
+        (byApp[e.applicationId] ||= []).push(e);
+      }
+
+      // nodes: all pipeline stages (Saved removed)
+      const nodes = [
+        { name: 'Start', fill: '#e5e7eb' },
+        ...STAGES.map((s) => ({ name: s, fill: STATUS_HEX[s] || '#94a3b8' }))
+      ];
+      const idx: Record<Status | 'Start', number> = { Start: 0 } as Record<Status | 'Start', number>;
+      STAGES.forEach((s, i) => { idx[s] = i + 1; });
+
+      const counts: Record<string, number> = {};
+      let processedApps = 0;
+      const MAX_APPS = 10000; // Safety limit
+      
+      for (const app of sourceApps) {
+        if (processedApps++ > MAX_APPS) {
+          console.warn('Too many apps, stopping Sankey processing');
+          break;
         }
-        return { source: sourceIdx, target: targetIdx, value: Math.max(0, v) };
-      })
-      .filter((link): link is { source: number; target: number; value: number } => link !== null);
 
-    const data = {
-      nodes,
-      links,
-    };
-    return data;
+        const seq = buildStageSequence(app, byApp[app.id || ''] || []);
+        if (!seq || seq.length === 0) continue;
+
+        // Validate sequence doesn't have issues
+        if (seq.length > 50) {
+          console.warn('Sequence too long, skipping app:', app.id);
+          continue;
+        }
+
+        // Start → first stage (captures entries not inferred from events)
+        const first = seq[0];
+        if (first && idx[first] !== undefined) {
+          counts[`Start→${first}`] = (counts[`Start→${first}`] || 0) + 1;
+        }
+
+        // Consecutive stage transitions
+        for (let i = 0; i < seq.length - 1; i++) {
+          const a = seq[i], b = seq[i + 1];
+          if (!a || !b || idx[a] === undefined || idx[b] === undefined) continue;
+          const key = `${a}→${b}`;
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      }
+
+      const links = Object.entries(counts)
+        .map(([k, v]) => {
+          const parts = k.split('→');
+          if (parts.length !== 2) return null;
+          const [a, b] = parts as [Status | 'Start', Status];
+          const sourceIdx = idx[a];
+          const targetIdx = idx[b];
+          
+          // Skip invalid or self-referencing links
+          if (sourceIdx === undefined || targetIdx === undefined || !v || v < 0 || sourceIdx === targetIdx) {
+            return null;
+          }
+          return { source: sourceIdx, target: targetIdx, value: Math.max(0, v) };
+        })
+        .filter((link): link is { source: number; target: number; value: number } => link !== null);
+
+      // Validate the final data structure
+      if (links.length > 500) {
+        console.warn('Too many links, data may be corrupted');
+        return { nodes: [], links: [], valid: false };
+      }
+
+      // Check for circular references
+      const linkMap = new Map<number, Set<number>>();
+      for (const link of links) {
+        if (!linkMap.has(link.source)) linkMap.set(link.source, new Set());
+        linkMap.get(link.source)!.add(link.target);
+      }
+
+      // Simple cycle detection
+      const visited = new Set<number>();
+      const recStack = new Set<number>();
+      const hasCycle = (node: number, depth = 0): boolean => {
+        if (depth > 100) return true; // Safety limit
+        if (recStack.has(node)) return true;
+        if (visited.has(node)) return false;
+        
+        visited.add(node);
+        recStack.add(node);
+        
+        const neighbors = linkMap.get(node);
+        if (neighbors) {
+          for (const neighbor of neighbors) {
+            if (hasCycle(neighbor, depth + 1)) return true;
+          }
+        }
+        
+        recStack.delete(node);
+        return false;
+      };
+
+      for (let i = 0; i < nodes.length; i++) {
+        if (hasCycle(i)) {
+          console.error('Cycle detected in Sankey data, refusing to render');
+          return { nodes: [], links: [], valid: false };
+        }
+      }
+
+      return { nodes, links, valid: true };
+    } catch (err) {
+      console.error('Error building Sankey data:', err);
+      setHasError(true);
+      return { nodes: [], links: [], valid: false };
+    }
   }, [apps, events, recentDays]);
 
   // Custom components with proper keys to fix React warnings
@@ -168,7 +232,18 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
   return (
     <div className="rounded border bg-white p-4">
       <h3 className="mb-2 font-semibold">{title}</h3>
-      {data.nodes.length === 0 || data.links.length === 0 ? (
+      {hasError || data.valid === false ? (
+        <div style={{ width: '100%', height: '24rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.5rem' }}>
+          <span className="text-red-600 font-semibold">⚠️ Chart Error</span>
+          <span className="text-slate-500 text-sm">Data validation failed - chart disabled for safety</span>
+          <button 
+            onClick={() => setHasError(false)}
+            className="mt-2 px-3 py-1 text-xs bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+          >
+            Retry
+          </button>
+        </div>
+      ) : data.nodes.length === 0 || data.links.length === 0 ? (
         <div style={{ width: '100%', height: '24rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span className="text-slate-500">No data available</span>
         </div>
@@ -176,7 +251,7 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
         <div style={{ width: '100%', height: '24rem', minHeight: '24rem', minWidth: '300px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <Sankey 
-              data={data}
+              data={{ nodes: data.nodes, links: data.links }}
               nodePadding={24} 
               nodeWidth={14} 
               linkCurvature={0.5}
