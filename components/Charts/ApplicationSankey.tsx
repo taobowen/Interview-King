@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip } from 'recharts';
 import type { ApplicationDoc, StatusEvent, Status } from '@/lib/types';
 import { STATUS_HEX, STAGES } from '@/lib/status';
@@ -111,7 +111,7 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
   }, [apps, events, recentDays]);
 
   // Custom components with proper keys to fix React warnings
-  const renderNode = (props: any) => {
+  const renderNode = useCallback((props: any) => {
     const { x, y, width, height, payload, index } = props;
     return (
       <g key={`node-${index}-${payload?.name || index}`}>
@@ -135,9 +135,9 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
         </text>
       </g>
     );
-  };
+  }, []);
 
-  const renderLink = (props: any) => {
+  const renderLink = useCallback((props: any) => {
     const { sourceX, sourceY, targetX, targetY, sourceControlX, targetControlX, linkWidth, index } = props;
     return (
       <path
@@ -145,30 +145,36 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
         d={`M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
         fill="none"
         stroke="#94a3b8"
-        strokeWidth={Math.max(1, linkWidth)}
+        strokeWidth={Math.max(1, linkWidth || 0)}
         strokeOpacity={0.6}
       />
     );
-  };
+  }, []);
 
   return (
     <div className="rounded border bg-white p-4">
       <h3 className="mb-2 font-semibold">{title}</h3>
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <Sankey 
-            data={data}
-            nodePadding={24} 
-            nodeWidth={14} 
-            linkCurvature={0.5}
-            margin={{ left: 12, right: 140, top: 12, bottom: 12 }}
-            node={renderNode}
-            link={renderLink}
-          >
-            <Tooltip />
-          </Sankey>
-        </ResponsiveContainer>
-      </div>
+      {Object.keys(data.nodes || {}).length === 0 ? (
+        <div className="h-96 flex items-center justify-center text-slate-500">
+          No data available
+        </div>
+      ) : (
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <Sankey 
+              data={data}
+              nodePadding={24} 
+              nodeWidth={14} 
+              linkCurvature={0.5}
+              margin={{ left: 12, right: 140, top: 12, bottom: 12 }}
+              node={renderNode}
+              link={renderLink}
+            >
+              <Tooltip />
+            </Sankey>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

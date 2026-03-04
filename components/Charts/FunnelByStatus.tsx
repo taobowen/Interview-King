@@ -14,6 +14,13 @@ export default function FunnelByStatus({ apps }: { apps: ApplicationDoc[] }) {
 		}, {})
 	);
 
+	if (data.length === 0) {
+		return (
+			<div className="h-64 flex items-center justify-center text-slate-500">
+				No data available
+			</div>
+		);
+	}
 
 	return (
 		<div className="h-64">
