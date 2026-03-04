@@ -6,7 +6,7 @@ import { tsToDate } from '@/lib/utils';
 export default function StatusUpdatesTimeline({ events }: { events: StatusEvent[] }) {
   const map: Record<string, number> = {};
   events.forEach(ev => {
-    const dt = tsToDate(ev.at);
+    const dt = tsToDate(ev.createdAt);
     const key = dt.toISOString().slice(0, 10);
     map[key] = (map[key] || 0) + 1;
   });

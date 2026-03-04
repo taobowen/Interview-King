@@ -6,9 +6,9 @@ import { tsToDate } from '@/lib/utils';
 type Props = { app: ApplicationDoc; events: StatusEvent[] };
 
 function buildSeries(app: ApplicationDoc, events: StatusEvent[]) {
-  const sorted = [...events].sort((a, b) => tsToDate(a.at).getTime() - tsToDate(b.at).getTime());
+  const sorted = [...events].sort((a, b) => tsToDate(a.createdAt).getTime() - tsToDate(b.createdAt).getTime());
   const first = sorted[0];
-  const initialStatus = (first?.from as any) || app.status || 'Saved';
+  const initialStatus = (first?.fromStatus as any) || app.status || 'Saved';
 
   const data = [
     {
@@ -18,10 +18,10 @@ function buildSeries(app: ApplicationDoc, events: StatusEvent[]) {
       label: 'Created',
     },
     ...sorted.map((ev) => ({
-      t: tsToDate(ev.at).getTime(),
-      date: tsToDate(ev.at).toISOString().slice(0, 10),
-      status: ev.to,
-      label: `${ev.from ? `${ev.from} → ` : ''}${ev.to}`,
+      t: tsToDate(ev.createdAt).getTime(),
+      date: tsToDate(ev.createdAt).toISOString().slice(0, 10),
+      status: ev.toStatus,
+      label: `${ev.fromStatus ? `${ev.fromStatus} → ` : ''}${ev.toStatus}`,
     })),
   ];
 

@@ -13,7 +13,7 @@ function reachedInterview(app: ApplicationDoc, eventsByApp: Record<string, Statu
 
   // 3) If any historical event reached an interview stage
   const evs = eventsByApp[app.id || ''] || [];
-  return evs.some(e => INTERVIEW_STAGES.includes(e.to as Status));
+  return evs.some(e => INTERVIEW_STAGES.includes(e.toStatus as Status));
 }
 
 export default function KPIs({ apps, events }:{ apps:ApplicationDoc[]; events:StatusEvent[] }) {
@@ -22,7 +22,7 @@ export default function KPIs({ apps, events }:{ apps:ApplicationDoc[]; events:St
 
   const eventsByApp = useMemo(() => {
     const m: Record<string, StatusEvent[]> = {};
-    events.forEach(e => { (m[e.appId] ||= []).push(e); });
+    events.forEach(e => { (m[e.applicationId] ||= []).push(e); });
     return m;
   }, [events]);
 

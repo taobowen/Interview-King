@@ -17,15 +17,15 @@ const STAGE_SET = new Set<Status>(STAGES);
 // Build a compact stage sequence for one app, excluding "Saved" and
 // ensuring rejected flows end with refusedAt -> Rejected.
 function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {
-  const sorted = [...evs].sort((a, b) => tsToDate(a.at).getTime() - tsToDate(b.at).getTime());
+  const sorted = [...evs].sort((a, b) => tsToDate(a.createdAt).getTime() - tsToDate(b.createdAt).getTime());
 
   const isStage = (s?: any): s is Status => !!s && STAGE_SET.has(s as Status);
 
   // 1) Prefer earliest event.from if it's a pipeline stage
-  let seed: Status | undefined = sorted.find(e => isStage(e.from))?.from as Status | undefined;
+  let seed: Status | undefined = sorted.find(e => isStage(e.fromStatus))?.fromStatus as Status | undefined;
 
   // 2) Else earliest event.to
-  if (!seed) seed = sorted.find(e => isStage(e.to))?.to as Status | undefined;
+  if (!seed) seed = sorted.find(e => isStage(e.toStatus))?.toStatus as Status | undefined;
 
   // 3) Else explicit refusedAt if present (rejected apps without history)
   if (!seed && isStage(app.refusedAt)) seed = app.refusedAt as Status;
@@ -38,7 +38,7 @@ function buildStageSequence(app: ApplicationDoc, evs: StatusEvent[]): Status[] {
 
   const seq: Status[] = [seed];
 
-  sorted.forEach(e => { if (isStage(e.to) && seq[seq.length - 1] !== e.to) seq.push(e.to as Status); });
+  sorted.forEach(e => { if (isStage(e.toStatus) && seq[seq.length - 1] !== e.toStatus) seq.push(e.toStatus as Status); });
 
   // If currently Rejected, ensure final hop ends at Rejected from the actual stage
   // Only add rejection logic if events didn't already capture it
@@ -66,8 +66,8 @@ export default function ApplicationSankey({ apps, events, recentDays, title }: P
     // group events by app
     const byApp: Record<string, StatusEvent[]> = {};
     for (const e of events) {
-      if (!e.appId) continue;
-      (byApp[e.appId] ||= []).push(e);
+      if (!e.applicationId) continue;
+      (byApp[e.applicationId] ||= []).push(e);
     }
 
     // nodes: all pipeline stages (Saved removed)
