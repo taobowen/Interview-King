@@ -37,7 +37,7 @@ export default function Dashboard() {
       const eventsData = await eventsResponse.json();
       
       setApps(appsData.applications || []);
-      setEvents(eventsData.events || []);
+      setEvents(eventsData.statusEvents || []);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       setError('Failed to load dashboard data. Please try refreshing the page.');

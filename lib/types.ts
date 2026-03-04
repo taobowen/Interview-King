@@ -28,9 +28,9 @@ export type ApplicationDoc = {
 
 export type StatusEvent = {
   id?: string;
-  appId: string;
-  type: 'status-change';
-  from?: Status;
-  to: Status;
-  at: any; // timestamp
+  applicationId: string;
+  eventType: 'status-change';
+  fromStatus?: Status;
+  toStatus: Status;
+  createdAt?: any; // timestamp
 };

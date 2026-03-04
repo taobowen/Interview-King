@@ -44,7 +44,7 @@ export default function ApplicationTable() {
             const response = await apiClient.get(`/api/status-events/by-app?appId=${appId}`);
             if (response.ok) {
                 const data = await response.json();
-                setEvents(data.events || []);
+                setEvents(data.statusEvents || []);
             }
         } catch (error) {
             console.error('Failed to fetch status events:', error);
@@ -95,10 +95,10 @@ export default function ApplicationTable() {
             // First create status event if status is changing
             if (current && current !== next) {
                 await apiClient.post('/api/status-events', {
-                    appId: id,
-                    type: 'status-change',
-                    from: current,
-                    to: next
+                    applicationId: id,
+                    eventType: 'status-change',
+                    fromStatus: current,
+                    status: next
                 });
             }
             
