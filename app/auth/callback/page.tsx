@@ -15,9 +15,22 @@ export default function AuthCallback() {
       setStatus('Setting up your account…');
       const session = await fetchAuthSession();
       const token = session.tokens?.accessToken?.toString();
+      const idToken = session.tokens?.idToken?.toString();
       
       if (!token) {
         throw new Error('No access token found');
+      }
+
+      // Extract email from ID token claims (access tokens don't include email by default)
+      let userEmail: string | undefined;
+      if (idToken) {
+        try {
+          const parts = idToken.split('.');
+          const decoded = JSON.parse(atob(parts[1]));
+          userEmail = decoded.email;
+        } catch (err) {
+          console.log('Could not decode email from ID token', err);
+        }
       }
 
       const response = await fetch('/api/users/sync', {
@@ -26,6 +39,7 @@ export default function AuthCallback() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ email: userEmail }),
       });
 
       if (!response.ok) {
