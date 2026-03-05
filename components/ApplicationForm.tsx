@@ -110,7 +110,7 @@ useEffect(() => {
           .map((d: any) => ({ 
             status: d.status, 
             title: d.title, 
-            createdAt: d.created_at 
+            createdAt: d.createdAt
           }))
           .slice(0, 3)
       );
