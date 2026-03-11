@@ -8,6 +8,23 @@ import { tsToDate } from '../../../lib/utils';
 
 const REJECT_AT_OPTIONS: Status[] = ['Saved','Applied','OA','Screen','Tech','Onsite','Offer'];
 
+function normalizeApplication(raw: any): Partial<ApplicationDoc> | null {
+    if (!raw || typeof raw !== 'object') return null;
+
+    return {
+        id: raw.id,
+        title: raw.title ?? raw.titleText ?? raw.title_text ?? '',
+        company: raw.company ?? '',
+        location: raw.location ?? '',
+        jobUrl: raw.jobUrl ?? raw.job_url ?? raw.link ?? '',
+        status: (raw.status ?? 'Saved') as Status,
+        notes: raw.notes ?? '',
+        statusUpdatedAt: raw.statusUpdatedAt ?? raw.status_updated_at,
+        lastActionAt: raw.lastActionAt ?? raw.last_action_at,
+        refusedAt: raw.refusedAt ?? raw.refused_at,
+    };
+}
+
 
 export default function EditApplicationPage() {
     const params = useParams();
@@ -29,7 +46,18 @@ export default function EditApplicationPage() {
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const app = data.application;
+                    const app = normalizeApplication(
+                        data?.application
+                        ?? data?.applications?.[0]
+                        ?? data?.data?.application
+                        ?? data?.data
+                    );
+
+                    if (!app) {
+                        setForm({});
+                        return;
+                    }
+
                     initialStatus.current = app?.status || undefined;
                     setForm(app || {});
                     setRefusedSel(app?.refusedAt || 'Applied');
@@ -61,7 +89,7 @@ export default function EditApplicationPage() {
                 jobUrl: form.jobUrl || '',
                 status: now,
                 notes: form.notes || '',
-                refusedAt: now === 'Rejected' ? new Date(refusedSel).toISOString() : null,
+                refusedAt: now === 'Rejected' ? new Date().toISOString() : null,
             };
 
             // Update application via PostgreSQL API
@@ -105,19 +133,32 @@ export default function EditApplicationPage() {
     return (
         <div className="max-w-2xl space-y-3">
             <h1 className="text-xl font-semibold">Edit Application</h1>
-            <input className="w-full border rounded px-3 py-2" placeholder="Job title" value={form.title || ''} onChange={(e) => update('title', e.target.value)} />
-            <input className="w-full border rounded px-3 py-2" placeholder="Company" value={form.company || ''} onChange={(e) => update('company', e.target.value)} />
-            <input className="w-full border rounded px-3 py-2" placeholder="Location" value={form.location || ''} onChange={(e) => update('location', e.target.value)} />
-            <input className="w-full border rounded px-3 py-2" placeholder="Job URL" value={form.jobUrl || ''} onChange={(e) => update('jobUrl', e.target.value)} />
+            <div className="space-y-1">
+                <label className="text-sm text-slate-600">Title</label>
+                <input className="w-full border rounded px-3 py-2" placeholder="Job title" value={form.title || ''} onChange={(e) => update('title', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+                <label className="text-sm text-slate-600">Company</label>
+                <input className="w-full border rounded px-3 py-2" placeholder="Company" value={form.company || ''} onChange={(e) => update('company', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+                <label className="text-sm text-slate-600">Location</label>
+                <input className="w-full border rounded px-3 py-2" placeholder="Location" value={form.location || ''} onChange={(e) => update('location', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+                <label className="text-sm text-slate-600">Job URL</label>
+                <input className="w-full border rounded px-3 py-2" placeholder="Job URL" value={form.jobUrl || ''} onChange={(e) => update('jobUrl', e.target.value)} />
+            </div>
 
 
             <div className="flex items-center gap-2">
                 <label className="text-sm text-slate-600">Status</label>
                 <select className="border rounded px-2 py-1" value={(form.status as any) || 'Saved'} onChange={(e) => update('status', e.target.value)}>
-                    {['Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Rejected'].map((s) => (
+                    {['Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'No response', 'Rejected', 'Closed'].map((s) => (
                         <option key={s} value={s}>{s}</option>
                     ))}
                 </select>
+                <p className="text-sm text-slate-600">Original status: {initialStatus.current || 'Saved'}</p>
                 <p className="text-sm text-slate-600">Status last updated: {tsToDate(form.statusUpdatedAt || form.lastActionAt).toLocaleString()}</p>
             </div>
 

@@ -341,7 +341,7 @@ return (
         <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Status</label>
             <select className="border rounded px-2 py-1" value={form.status} onChange={e=>update('status', e.target.value)}>
-                {['Applied','Saved','OA','Screen','Tech','Onsite','Offer','Accepted','Rejected', 'Closed'].map(s=> <option key={s} value={s}>{s}</option>)}
+            {['Applied','Saved','OA','Screen','Tech','Onsite','Offer','Accepted','No response','Rejected', 'Closed'].map(s=> <option key={s} value={s}>{s}</option>)}
             </select>
         </div>
         {/* NEW: Notes */}

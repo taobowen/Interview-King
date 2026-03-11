@@ -1,4 +1,4 @@
-export type Status = 'Saved'|'Applied'|'OA'|'Screen'|'Tech'|'Onsite'|'Offer'|'Accepted'|'Rejected'|'Closed';
+export type Status = 'Saved'|'Applied'|'OA'|'Screen'|'Tech'|'Onsite'|'Offer'|'Accepted'|'No response'|'Rejected'|'Closed';
 
 
 export type ApplicationDoc = {

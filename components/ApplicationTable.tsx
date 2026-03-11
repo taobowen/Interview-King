@@ -185,7 +185,7 @@ export default function ApplicationTable() {
                 </button>
                 
                 <select value={filter} onChange={(e) => setFilter(e.target.value as any)} className="border rounded px-2 py-2">
-                    {['All', 'Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Rejected', 'Closed'].map((s) => (
+                    {['All', 'Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'No response', 'Rejected', 'Closed'].map((s) => (
                         <option key={s} value={s}>
                             {s}
                         </option>
@@ -231,7 +231,7 @@ export default function ApplicationTable() {
                                             value={r.status}
                                             onChange={(e)=>changeStatus(r.id!, e.target.value as Status, r.status as Status)}
                                         >
-                                            {['Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'Rejected', 'Closed'].map((s) => (
+                                            {['Saved', 'Applied', 'OA', 'Screen', 'Tech', 'Onsite', 'Offer', 'Accepted', 'No response', 'Rejected', 'Closed'].map((s) => (
                                                 <option key={s} value={s}>
                                                     {s}
                                                 </option>

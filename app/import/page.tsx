@@ -120,7 +120,7 @@ export default function ImportCSV() {
               <code className="text-sm bg-white px-2 py-1 rounded border text-slate-800">{OPTIONAL.join(', ')}</code>
             </div>
             <ul className="list-disc ml-5 text-sm text-slate-600 space-y-1">
-              <li><code className="bg-white px-1 rounded">status</code> must be one of: Saved, Applied, OA, Screen, Tech, Onsite, Offer, Accepted, Rejected, Closed</li>
+              <li><code className="bg-white px-1 rounded">status</code> must be one of: Saved, Applied, OA, Screen, Tech, Onsite, Offer, Accepted, No response, Rejected, Closed</li>
               <li><code className="bg-white px-1 rounded">createdAt</code> accepts ISO string (e.g. 2025-09-17) or milliseconds epoch</li>
               <li><code className="bg-white px-1 rounded">tags</code> can be comma/semicolon/pipe-separated</li>
             </ul>

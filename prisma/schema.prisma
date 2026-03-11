@@ -138,6 +138,7 @@ enum application_status {
   Onsite
   Offer
   Accepted
+  No_response @map("No response")
   Rejected
   Closed
 }
