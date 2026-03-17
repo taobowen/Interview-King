@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { signInHostedUI, signOutAll, getHostedUIUrl } from '../lib/amplify.client';
 import { useUser } from '../lib/useUser';
+import UnreadNotificationsBadge from './UnreadNotificationsBadge';
 
 export default function Navbar() {
   const { user, loading } = useUser();
@@ -15,6 +16,9 @@ export default function Navbar() {
             <Link href="/applications" className="hover:underline">Applications</Link>
             <Link href="/add" className="hover:underline">Add</Link>
             <Link href="/import" className="hover:underline">Import CSV</Link>
+            <Link href="/gmail" className="hover:underline">Gmail</Link>
+            <Link href="/review" className="hover:underline">Review</Link>
+            <Link href="/notifications" className="hover:underline">Notifications</Link>
             <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
           </nav>
         </div>
@@ -30,6 +34,12 @@ export default function Navbar() {
           <Link href="/applications" className="hover:underline">Applications</Link>
           <Link href="/add" className="hover:underline">Add</Link>
           <Link href="/import" className="hover:underline">Import CSV</Link>
+          <Link href="/gmail" className="hover:underline">Gmail</Link>
+          <Link href="/review" className="hover:underline">Review</Link>
+          <Link href="/notifications" className="hover:underline inline-flex items-center">
+            Notifications
+            <UnreadNotificationsBadge />
+          </Link>
           {user ? (
             <>
               <span className="text-slate-600 hidden sm:inline">{user.email}</span>

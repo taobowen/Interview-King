@@ -19,6 +19,9 @@
 
 # backend
 /lambda
+/lambda-scanner
+/lambda-notification-worker
+/prisma
 
 # production
 /build

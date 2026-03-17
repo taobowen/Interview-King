@@ -19,6 +19,8 @@ export default function ApplicationTable() {
     const [selected, setSelected] = useState<ApplicationDoc | null>(null);
     const [events, setEvents] = useState<StatusEvent[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
 
     const fetchApplications = async () => {
         if (!uid || loading) return;
@@ -86,6 +88,23 @@ export default function ApplicationTable() {
         });
         return arr;
     }, [filtered, sortKey, sortDir]);
+
+    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    const currentPage = Math.min(page, totalPages);
+    const pagedRows = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return sorted.slice(start, start + pageSize);
+    }, [sorted, currentPage, pageSize]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [q, filter, sortKey, sortDir, pageSize]);
+
+    useEffect(() => {
+        if (page > totalPages) {
+            setPage(totalPages);
+        }
+    }, [page, totalPages]);
 
 
     const changeStatus = async (id: string, next: Status, current?: Status) => {
@@ -217,7 +236,7 @@ export default function ApplicationTable() {
                         </tr>
                     </thead>
                     <tbody>
-                        {sorted.map((r) => (
+                        {pagedRows.map((r) => (
                             <tr key={r.id} className="border-b hover:bg-slate-50">
                                 <td className="p-2 font-medium">{r.company}</td>
                                 <td className="p-2">{r.title}</td>
@@ -262,6 +281,42 @@ export default function ApplicationTable() {
                         ))}
                     </tbody>
                 </table>
+            </div>
+            <div className="flex items-center justify-between text-sm text-slate-600">
+                <div>
+                    Showing {sorted.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+                    {' '}-{' '}
+                    {Math.min(currentPage * pageSize, sorted.length)} of {sorted.length}
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1">
+                        <span>Rows:</span>
+                        <select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                            className="border rounded px-2 py-1"
+                        >
+                            {[10, 20, 50, 100].map((size) => (
+                                <option key={size} value={size}>{size}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <button
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage <= 1}
+                        className="border rounded px-2 py-1 disabled:opacity-50"
+                    >
+                        Prev
+                    </button>
+                    <span>Page {currentPage} / {totalPages}</span>
+                    <button
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                        className="border rounded px-2 py-1 disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
             {drawerOpen && selected && (
                 <div className="fixed inset-0 z-40">

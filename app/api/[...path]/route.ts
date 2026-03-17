@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // API Gateway base URL (server-only environment variable)
-const API_BASE_URL = process.env.API_BASE_URL;
+const API_BASE_URL = process.env.API_BASE_URL ?? '';
 
 if (!API_BASE_URL) {
   throw new Error('API_BASE_URL environment variable is required');
@@ -24,8 +24,13 @@ async function handleRequest(
     const { path } = await params;
     const apiPath = path.join('/');
     
-    // Construct target URL
-    const targetUrl = new URL(`/${apiPath}`, API_BASE_URL);
+    // Construct target URL while preserving API_BASE_URL path prefix (e.g. /prod)
+    const baseUrl = new URL(API_BASE_URL);
+    const basePath = baseUrl.pathname.replace(/\/$/, '');
+    const normalizedApiPath = apiPath.replace(/^\/+/, '');
+    const targetPath = `${basePath}/${normalizedApiPath}`.replace(/\/+/g, '/');
+    const targetUrl = new URL(baseUrl.origin);
+    targetUrl.pathname = targetPath;
     
     // Preserve query parameters
     const searchParams = request.nextUrl.searchParams;
