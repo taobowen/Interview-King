@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@/lib/useUser';
-import type { GmailScheduleDto, GetGmailSettingsResponse } from '@/lambda/contracts/gmail-api.contracts';
+import type { GmailScheduleDto, GetGmailSettingsResponse } from '@/lib/contracts/gmail-api.contracts';
 import {
   ApiErrorLike,
   ScheduleDraft,

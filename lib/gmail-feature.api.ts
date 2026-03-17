@@ -26,7 +26,7 @@ import type {
   PostGmailSchedulesRequest,
   PostGmailSchedulesResponse,
   PostNotificationsReadResponse,
-} from '../lambda/contracts/gmail-api.contracts';
+} from './contracts/gmail-api.contracts';
 
 export type SchedulePreset = 'daily' | 'weekdays' | 'weekly';
 

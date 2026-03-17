@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@/lib/useUser';
-import type { NotificationDto } from '@/lambda/contracts/gmail-api.contracts';
+import type { NotificationDto } from '@/lib/contracts/gmail-api.contracts';
 import {
   ApiErrorLike,
   listNotifications,

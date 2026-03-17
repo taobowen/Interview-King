@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@/lib/useUser';
-import type { ApplicationStatus, ApplicationStatusEventReviewDto } from '@/lambda/contracts/gmail-api.contracts';
+import type { ApplicationStatus, ApplicationStatusEventReviewDto } from '@/lib/contracts/gmail-api.contracts';
 import {
   ApiErrorLike,
   approveReviewItem,
