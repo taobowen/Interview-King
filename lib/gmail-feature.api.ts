@@ -21,6 +21,18 @@ import type {
   PostApplicationStatusEventApproveResponse,
   PostApplicationStatusEventRejectRequest,
   PostApplicationStatusEventRejectResponse,
+  PostApplicationStatusEventDiscardRequest,
+  PostApplicationStatusEventDiscardResponse,
+  PostApplicationStatusEventEditRequest,
+  PostApplicationStatusEventEditResponse,
+  PostApplicationStatusEventMatchRequest,
+  PostApplicationStatusEventMatchResponse,
+  PostApplicationStatusEventCreateAndMatchRequest,
+  PostApplicationStatusEventCreateAndMatchResponse,
+  PostApplicationStatusEventsBulkDiscardRequest,
+  PostApplicationStatusEventsBulkDiscardResponse,
+  PostApplicationStatusEventsBulkPendingRequest,
+  PostApplicationStatusEventsBulkPendingResponse,
   PostGmailScanRequest,
   PostGmailScanResponse,
   PostGmailSchedulesRequest,
@@ -84,6 +96,15 @@ function composeQueryFilter(input: { lookbackHours: number | null; gmailQueryFil
 export interface ApiErrorLike {
   message: string;
   status?: number;
+}
+
+export interface JobTitleOption {
+  id: string;
+  title: string;
+  isActive?: boolean;
+  sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 async function parseJsonOrThrow<T>(response: Response): Promise<T> {
@@ -288,6 +309,12 @@ export async function listReviewQueue(): Promise<ApplicationStatusEventReviewDto
   return data.events || [];
 }
 
+export async function listJobTitles(): Promise<JobTitleOption[]> {
+  const response = await apiClient.get('/api/job-titles');
+  const data = await parseJsonOrThrow<{ jobTitles?: JobTitleOption[] }>(response);
+  return data.jobTitles || [];
+}
+
 export async function approveReviewItem(
   id: string,
   input: PostApplicationStatusEventApproveRequest = {}
@@ -302,6 +329,52 @@ export async function rejectReviewItem(
 ): Promise<PostApplicationStatusEventRejectResponse> {
   const response = await apiClient.post(`/api/application-status-events/${id}/reject`, input);
   return parseJsonOrThrow<PostApplicationStatusEventRejectResponse>(response);
+}
+
+export async function discardReviewItem(
+  id: string,
+  input: PostApplicationStatusEventDiscardRequest = {}
+): Promise<PostApplicationStatusEventDiscardResponse> {
+  const response = await apiClient.post(`/api/application-status-events/${id}/discard`, input);
+  return parseJsonOrThrow<PostApplicationStatusEventDiscardResponse>(response);
+}
+
+export async function editReviewItem(
+  id: string,
+  input: PostApplicationStatusEventEditRequest
+): Promise<PostApplicationStatusEventEditResponse> {
+  const response = await apiClient.post(`/api/application-status-events/${id}/edit`, input);
+  return parseJsonOrThrow<PostApplicationStatusEventEditResponse>(response);
+}
+
+export async function matchReviewItemToApplication(
+  id: string,
+  input: PostApplicationStatusEventMatchRequest
+): Promise<PostApplicationStatusEventMatchResponse> {
+  const response = await apiClient.post(`/api/application-status-events/${id}/match`, input);
+  return parseJsonOrThrow<PostApplicationStatusEventMatchResponse>(response);
+}
+
+export async function createApplicationFromReviewItem(
+  id: string,
+  input: PostApplicationStatusEventCreateAndMatchRequest
+): Promise<PostApplicationStatusEventCreateAndMatchResponse> {
+  const response = await apiClient.post(`/api/application-status-events/${id}/create-and-match`, input);
+  return parseJsonOrThrow<PostApplicationStatusEventCreateAndMatchResponse>(response);
+}
+
+export async function bulkDiscardReviewItems(
+  input: PostApplicationStatusEventsBulkDiscardRequest
+): Promise<PostApplicationStatusEventsBulkDiscardResponse> {
+  const response = await apiClient.post('/api/application-status-events/bulk/discard', input);
+  return parseJsonOrThrow<PostApplicationStatusEventsBulkDiscardResponse>(response);
+}
+
+export async function bulkMarkReviewItemsPending(
+  input: PostApplicationStatusEventsBulkPendingRequest
+): Promise<PostApplicationStatusEventsBulkPendingResponse> {
+  const response = await apiClient.post('/api/application-status-events/bulk/pending', input);
+  return parseJsonOrThrow<PostApplicationStatusEventsBulkPendingResponse>(response);
 }
 
 export function formatTimeLabel(hour: number, minute: number): string {

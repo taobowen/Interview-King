@@ -22,6 +22,7 @@
 /lambda-scanner
 /lambda-notification-worker
 /prisma
+deploy.sh
 
 # production
 /build

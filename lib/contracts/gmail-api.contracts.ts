@@ -295,14 +295,19 @@ export interface InternalEmailEventItem {
   fromStatus?: ApplicationStatus;
   confidenceScore?: number; // 0..1
   rawSnippet?: string; // scanner should send already-truncated snippet
-  reason?: 'rules' | 'ai' | 'none';
+  reason?: 'ai' | 'none' | 'ai_failed';
+  aiReasonText?: string;
   isRelevant?: boolean;
-  aiCategory?: 'job_application' | 'interview' | 'offer' | 'rejection' | 'general_recruiting' | 'noise';
+  aiCategory?: 'applied' | 'interview' | 'offer' | 'rejection' | 'other';
   company?: string;
   role?: string;
   location?: string;
   jobUrl?: string;
   eventTimeText?: string;
+  externalJobId?: string;
+  shouldCreateApplication?: boolean;
+  shouldCreateEvent?: boolean;
+  aiRawJson?: string;
 }
 
 export interface PostInternalEmailEventsRequest {
@@ -393,6 +398,15 @@ export interface ApplicationStatusEventReviewDto {
   reviewStatus: ReviewDecision;
   createdAt: string;
   rawSnippet?: string;
+  // AI extracted fields for review and editing
+  aiConfidence?: number;
+  aiReason?: string;
+  aiCompany?: string;
+  aiRole?: string;
+  aiLocation?: string;
+  aiJobUrl?: string;
+  aiEventTime?: string;
+  aiRawJson?: Record<string, unknown>;
 }
 
 export interface GetApplicationStatusEventsResponse {
@@ -439,6 +453,131 @@ export interface PostApplicationStatusEventRejectResponse {
 }
 
 // -----------------------------------------------------------------------------
+// 13) POST /application-status-events/:id/discard
+// Discard an email as irrelevant (clearer naming than "reject")
+// -----------------------------------------------------------------------------
+
+export interface PostApplicationStatusEventDiscardPath {
+  id: string;
+}
+
+export interface PostApplicationStatusEventDiscardRequest {
+  reason?: 'spam' | 'irrelevant' | 'system_noise' | 'other';
+  note?: string;
+}
+
+export interface PostApplicationStatusEventDiscardResponse {
+  event: ApplicationStatusEventReviewDto;
+  meta: ApiSuccessMeta;
+}
+
+// -----------------------------------------------------------------------------
+// 14) POST /application-status-events/:id/edit
+// Edit detected fields and save them
+// -----------------------------------------------------------------------------
+
+export interface PostApplicationStatusEventEditPath {
+  id: string;
+}
+
+export interface PostApplicationStatusEventEditRequest {
+  detectedStatus?: ApplicationStatus;
+  aiCompany?: string;
+  aiRole?: string;
+  aiLocation?: string;
+  aiJobUrl?: string;
+  aiEventTime?: string;
+}
+
+export interface PostApplicationStatusEventEditResponse {
+  event: ApplicationStatusEventReviewDto;
+  meta: ApiSuccessMeta;
+}
+
+// -----------------------------------------------------------------------------
+// 15) POST /application-status-events/:id/match
+// Manually match to an existing application
+// -----------------------------------------------------------------------------
+
+export interface PostApplicationStatusEventMatchPath {
+  id: string;
+}
+
+export interface PostApplicationStatusEventMatchRequest {
+  applicationId: string;
+  applyStatus?: ApplicationStatus; // status to apply if different from detected
+}
+
+export interface PostApplicationStatusEventMatchResponse {
+  event: ApplicationStatusEventReviewDto;
+  statusEventId?: string; // if status was applied
+  meta: ApiSuccessMeta;
+}
+
+// -----------------------------------------------------------------------------
+// 16) POST /application-status-events/:id/create-and-match
+// Create a new application from the email and match it
+// -----------------------------------------------------------------------------
+
+export interface PostApplicationStatusEventCreateAndMatchPath {
+  id: string;
+}
+
+export interface PostApplicationStatusEventCreateAndMatchRequest {
+  company: string;
+  role?: string;
+  location?: string;
+  jobUrl?: string;
+  status?: ApplicationStatus;
+  notes?: string;
+}
+
+export interface PostApplicationStatusEventCreateAndMatchResponse {
+  event: ApplicationStatusEventReviewDto;
+  application: {
+    id: string;
+    company: string;
+    role?: string;
+    location?: string;
+    jobUrl?: string;
+    status: ApplicationStatus;
+  };
+  statusEventId?: string;
+  meta: ApiSuccessMeta;
+}
+
+// -----------------------------------------------------------------------------
+// 17) POST /application-status-events/bulk/discard
+// Bulk discard multiple review items
+// -----------------------------------------------------------------------------
+
+export interface PostApplicationStatusEventsBulkDiscardRequest {
+  ids: string[];
+  reason?: 'spam' | 'irrelevant' | 'system_noise' | 'other';
+  note?: string;
+}
+
+export interface PostApplicationStatusEventsBulkDiscardResponse {
+  discardedCount: number;
+  events: ApplicationStatusEventReviewDto[];
+  meta: ApiSuccessMeta;
+}
+
+// -----------------------------------------------------------------------------
+// 18) POST /application-status-events/bulk/pending
+// Bulk mark multiple review items as pending/review-later
+// -----------------------------------------------------------------------------
+
+export interface PostApplicationStatusEventsBulkPendingRequest {
+  ids: string[];
+}
+
+export interface PostApplicationStatusEventsBulkPendingResponse {
+  markedCount: number;
+  events: ApplicationStatusEventReviewDto[];
+  meta: ApiSuccessMeta;
+}
+
 // Shared DTOs
 // -----------------------------------------------------------------------------
 
