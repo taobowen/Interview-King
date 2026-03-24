@@ -295,6 +295,10 @@ export interface InternalEmailEventItem {
   fromStatus?: ApplicationStatus;
   confidenceScore?: number; // 0..1
   rawSnippet?: string; // scanner should send already-truncated snippet
+  bodyPreview?: string;
+  rawBodyText?: string;
+  rawBodyHtml?: string;
+  usefulLinks?: string[];
   reason?: 'ai' | 'none' | 'ai_failed';
   aiReasonText?: string;
   isRelevant?: boolean;
@@ -398,8 +402,12 @@ export interface ApplicationStatusEventReviewDto {
   reviewStatus: ReviewDecision;
   createdAt: string;
   rawSnippet?: string;
+  gmailSnippet?: string;
+  bodyPreview?: string;
+  usefulLinks?: string[];
   // AI extracted fields for review and editing
   aiConfidence?: number;
+  aiCategory?: 'applied' | 'interview' | 'offer' | 'rejection' | 'other';
   aiReason?: string;
   aiCompany?: string;
   aiRole?: string;
