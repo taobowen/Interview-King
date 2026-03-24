@@ -71,6 +71,11 @@ function GmailSettingsInner() {
     return [...schedules].sort((a, b) => a.name.localeCompare(b.name));
   }, [schedules]);
 
+  const needsReconnect = useMemo(() => {
+    const status = (gmailSettings?.gmailStatus || '').toLowerCase();
+    return status === 'reauthorization_required' || status === 'token_expired';
+  }, [gmailSettings?.gmailStatus]);
+
   const loadData = async () => {
     if (!uid) return;
 
@@ -329,6 +334,21 @@ function GmailSettingsInner() {
           <p className="mt-2 text-sm text-slate-600">Loading connection settings…</p>
         ) : (
           <>
+            {needsReconnect && (
+              <div className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span>Gmail authorization expired. Reconnect Gmail to resume scheduled scans.</span>
+                  <button
+                    type="button"
+                    onClick={onConnectGmail}
+                    disabled={settingsSaving || loading}
+                    className="rounded border border-amber-400 bg-white px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-60"
+                  >
+                    Reconnect Gmail
+                  </button>
+                </div>
+              </div>
+            )}
             {(() => {
               const isConnected = gmailSettings.gmailStatus === 'connected';
               const emailChanged = gmailEmailDraft.trim() !== (gmailSettings.gmailEmail || '');
