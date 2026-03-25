@@ -29,10 +29,12 @@ export default function UnreadNotificationsBadge() {
 
     load();
     const timer = setInterval(load, 30000);
+    window.addEventListener('notifications:updated', load);
 
     return () => {
       mounted = false;
       clearInterval(timer);
+      window.removeEventListener('notifications:updated', load);
     };
   }, [uid]);
 

@@ -302,7 +302,7 @@ export interface InternalEmailEventItem {
   reason?: 'ai' | 'none' | 'ai_failed';
   aiReasonText?: string;
   isRelevant?: boolean;
-  aiCategory?: 'applied' | 'interview' | 'offer' | 'rejection' | 'other';
+  aiCategory?: 'applied' | 'interview' | 'online_assessment' | 'offer' | 'rejection' | 'other';
   company?: string;
   role?: string;
   location?: string;
@@ -407,7 +407,7 @@ export interface ApplicationStatusEventReviewDto {
   usefulLinks?: string[];
   // AI extracted fields for review and editing
   aiConfidence?: number;
-  aiCategory?: 'applied' | 'interview' | 'offer' | 'rejection' | 'other';
+  aiCategory?: 'applied' | 'interview' | 'online_assessment' | 'offer' | 'rejection' | 'other';
   aiReason?: string;
   aiCompany?: string;
   aiRole?: string;

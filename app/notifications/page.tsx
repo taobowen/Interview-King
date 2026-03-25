@@ -54,6 +54,7 @@ export default function NotificationsPage() {
     setError(null);
     try {
       await markNotificationRead(id);
+      window.dispatchEvent(new CustomEvent('notifications:updated'));
       await load();
     } catch (err) {
       setError(toErrorMessage(err, 'Failed to mark notification as read.'));
@@ -84,6 +85,7 @@ export default function NotificationsPage() {
     setError(null);
     try {
       await Promise.all(Array.from(selectedIds).map((id) => markNotificationRead(id)));
+      window.dispatchEvent(new CustomEvent('notifications:updated'));
       await load();
     } catch (err) {
       setError(toErrorMessage(err, 'Failed to mark selected notifications as read.'));
