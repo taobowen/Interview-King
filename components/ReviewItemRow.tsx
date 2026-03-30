@@ -242,9 +242,14 @@ export default function ReviewItemRow({
               </p>
             )}
 
-            <p className="text-xs text-slate-500">
-              Received: {new Date(item.createdAt).toLocaleString()}
-            </p>
+            <div className="space-y-0.5 text-xs text-slate-500">
+              <p>
+                Received: {item.receivedAt ? new Date(item.receivedAt).toLocaleString() : 'Unknown'}
+              </p>
+              <p>
+                Scanned: {new Date(item.createdAt).toLocaleString()}
+              </p>
+            </div>
           </div>
         </div>
 

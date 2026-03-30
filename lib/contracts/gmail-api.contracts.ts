@@ -400,6 +400,7 @@ export interface ApplicationStatusEventReviewDto {
   fromStatus?: ApplicationStatus;
   confidenceScore?: number;
   reviewStatus: ReviewDecision;
+  receivedAt?: string;
   createdAt: string;
   rawSnippet?: string;
   gmailSnippet?: string;

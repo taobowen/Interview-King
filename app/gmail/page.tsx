@@ -73,7 +73,7 @@ function GmailSettingsInner() {
 
   const needsReconnect = useMemo(() => {
     const status = (gmailSettings?.gmailStatus || '').toLowerCase();
-    return status === 'reauthorization_required' || status === 'token_expired';
+    return status === 'reauthorization_required' || status === 'token_expired' || status === 'error';
   }, [gmailSettings?.gmailStatus]);
 
   const loadData = async () => {
