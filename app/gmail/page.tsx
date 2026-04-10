@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@/lib/useUser';
-import type { GmailScheduleDto, GetGmailSettingsResponse } from '@/lib/contracts/gmail-api.contracts';
+import type { GmailScheduleDto, GetGmailScanStatusResponse, GetGmailSettingsResponse } from '@/lib/contracts/gmail-api.contracts';
 import {
   ApiErrorLike,
   ScheduleDraft,
@@ -37,6 +37,29 @@ const DEFAULT_DRAFT: ScheduleDraft = {
   gmailQueryFilter: '',
 };
 
+const ACTIVE_SCAN_STATUSES = new Set(['pending', 'running']);
+
+function formatScanStatusLabel(status: string | undefined): string {
+  if (!status) return 'No scan job found yet.';
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function getScanProgressPercent(job: GetGmailScanStatusResponse['job']): number {
+  if (!job) return 0;
+  if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') return 100;
+  if (job.status === 'pending') return 8;
+
+  // Running scans do not expose total messages, so use a bounded heuristic based on work completed.
+  return Math.min(95, 15 + Math.floor(Math.log10(job.messagesScanned + 1) * 40));
+}
+
+function formatTimestamp(value?: string): string {
+  if (!value) return 'N/A';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return 'N/A';
+  return dt.toLocaleString();
+}
+
 function toErrorMessage(error: unknown, fallback: string): string {
   if (!error) return fallback;
   if (typeof error === 'string') return error;
@@ -61,7 +84,7 @@ function GmailSettingsInner() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ScheduleDraft>(DEFAULT_DRAFT);
 
-  const [latestScanStatus, setLatestScanStatus] = useState<string>('No scan job found yet.');
+  const [latestScanJob, setLatestScanJob] = useState<GetGmailScanStatusResponse['job']>(null);
   const [manualLookbackHours, setManualLookbackHours] = useState<string>('24');
   const [gmailSettings, setGmailSettings] = useState<GetGmailSettingsResponse['settings'] | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -75,6 +98,18 @@ function GmailSettingsInner() {
     const status = (gmailSettings?.gmailStatus || '').toLowerCase();
     return status === 'reauthorization_required' || status === 'token_expired' || status === 'error';
   }, [gmailSettings?.gmailStatus]);
+
+  const scanProgress = useMemo(() => getScanProgressPercent(latestScanJob), [latestScanJob]);
+  const hasActiveScan = useMemo(
+    () => !!latestScanJob && ACTIVE_SCAN_STATUSES.has(latestScanJob.status),
+    [latestScanJob]
+  );
+
+  const refreshScanStatus = async () => {
+    const status = await getLatestScanStatus();
+    setLatestScanJob(status.job);
+    return status.job;
+  };
 
   const loadData = async () => {
     if (!uid) return;
@@ -90,15 +125,7 @@ function GmailSettingsInner() {
       ]);
       setSchedules(scheduleRows);
       setGmailSettings(settings.settings);
-
-      if (!status.job) {
-        setLatestScanStatus('No scan job found yet.');
-      } else {
-        const job = status.job;
-        setLatestScanStatus(
-          `${job.status.toUpperCase()} • scanned ${job.messagesScanned} messages • detections ${job.detectionsFound}`
-        );
-      }
+      setLatestScanJob(status.job);
     } catch (err) {
       setError(toErrorMessage(err, 'Failed to load Gmail settings.'));
     } finally {
@@ -125,6 +152,33 @@ function GmailSettingsInner() {
   useEffect(() => {
     setGmailEmailDraft(gmailSettings?.gmailEmail || '');
   }, [gmailSettings?.gmailEmail]);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const job = await refreshScanStatus();
+        if (cancelled) return;
+        if (job && ACTIVE_SCAN_STATUSES.has(job.status)) {
+          setError(null);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setError(toErrorMessage(err, 'Failed to refresh scan progress.'));
+      }
+    };
+
+    const timerId = window.setInterval(poll, 5000);
+    poll();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timerId);
+    };
+  }, [uid]);
 
   const resetDraft = () => {
     setDraft(DEFAULT_DRAFT);
@@ -209,6 +263,7 @@ function GmailSettingsInner() {
         lookbackHours,
       });
       setScanMessage(`Scan started. Job ID: ${result.job.id}`);
+      await refreshScanStatus();
       await loadData();
     } catch (err) {
       setError(toErrorMessage(err, 'Failed to trigger scan now.'));
@@ -307,7 +362,64 @@ function GmailSettingsInner() {
 
       <section className="rounded border bg-white p-4">
         <h2 className="font-medium">Scan status</h2>
-        <p className="mt-2 text-sm text-slate-700">{latestScanStatus}</p>
+        {!latestScanJob ? (
+          <p className="mt-2 text-sm text-slate-700">No scan job found yet.</p>
+        ) : (
+          <>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+              <p className="text-slate-800">
+                <span className="font-medium">{formatScanStatusLabel(latestScanJob.status)}</span>
+                {` • scanned ${latestScanJob.messagesScanned} messages • detections ${latestScanJob.detectionsFound}`}
+              </p>
+              {hasActiveScan && (
+                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                  Polling every 5s
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={scanProgress}>
+              <div
+                className={`h-full transition-all duration-500 ${
+                  latestScanJob.status === 'failed'
+                    ? 'bg-red-500'
+                    : latestScanJob.status === 'completed'
+                      ? 'bg-emerald-500'
+                      : 'bg-blue-500'
+                }`}
+                style={{ width: `${scanProgress}%` }}
+              />
+            </div>
+
+            <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
+              <p>
+                <span className="text-slate-500">Job ID:</span> {latestScanJob.id}
+              </p>
+              <p>
+                <span className="text-slate-500">Trigger:</span> {latestScanJob.triggerType}
+              </p>
+              <p>
+                <span className="text-slate-500">Started:</span> {formatTimestamp(latestScanJob.startedAt)}
+              </p>
+              <p>
+                <span className="text-slate-500">Completed:</span> {formatTimestamp(latestScanJob.completedAt)}
+              </p>
+            </div>
+
+            {latestScanJob.errors.length > 0 && (
+              <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                <p className="font-medium">Scan errors</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {latestScanJob.errors.map((scanErr, idx) => (
+                    <li key={`${scanErr.code}-${idx}`}>
+                      {scanErr.code}: {scanErr.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
         <div className="mt-3 grid gap-2 md:max-w-sm">
           <label className="text-sm">
             <span className="mb-1 block text-slate-600">Manual scan lookback hours</span>

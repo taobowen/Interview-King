@@ -97,3 +97,6 @@ logs/
 tmp/
 temp/
 .tmp/
+
+# chrome extension build output
+chrome-extension/
