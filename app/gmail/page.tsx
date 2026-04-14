@@ -89,6 +89,8 @@ function GmailSettingsInner() {
   const [gmailSettings, setGmailSettings] = useState<GetGmailSettingsResponse['settings'] | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [gmailEmailDraft, setGmailEmailDraft] = useState('');
+  const [scanInitiatedAt, setScanInitiatedAt] = useState<number | null>(null);
+  const [indeterminateProgress, setIndeterminateProgress] = useState(0);
 
   const sortedSchedules = useMemo(() => {
     return [...schedules].sort((a, b) => a.name.localeCompare(b.name));
@@ -152,6 +154,27 @@ function GmailSettingsInner() {
   useEffect(() => {
     setGmailEmailDraft(gmailSettings?.gmailEmail || '');
   }, [gmailSettings?.gmailEmail]);
+
+  // Animate indeterminate progress bar while waiting for scan job to be created
+  useEffect(() => {
+    if (!scanInitiatedAt || latestScanJob) {
+      setScanInitiatedAt(null);
+      return;
+    }
+
+    let animationFrame: number;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = (Date.now() - startTime) % 2000; // 2-second animation loop
+      const progress = Math.sin(elapsed / 2000 * Math.PI) * 60 + 20; // Oscillates between 20% and 80%
+      setIndeterminateProgress(progress);
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [scanInitiatedAt, latestScanJob]);
 
   useEffect(() => {
     if (!uid) return;
@@ -251,6 +274,7 @@ function GmailSettingsInner() {
     setScanNowLoading(true);
     setScanMessage(null);
     setError(null);
+    setScanInitiatedAt(Date.now());
 
     try {
       const parsedLookback = Number(manualLookbackHours);
@@ -267,6 +291,7 @@ function GmailSettingsInner() {
       await loadData();
     } catch (err) {
       setError(toErrorMessage(err, 'Failed to trigger scan now.'));
+      setScanInitiatedAt(null);
     } finally {
       setScanNowLoading(false);
     }
@@ -362,61 +387,70 @@ function GmailSettingsInner() {
 
       <section className="rounded border bg-white p-4">
         <h2 className="font-medium">Scan status</h2>
-        {!latestScanJob ? (
+        {!latestScanJob && !scanInitiatedAt ? (
           <p className="mt-2 text-sm text-slate-700">No scan job found yet.</p>
         ) : (
           <>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <p className="text-slate-800">
-                <span className="font-medium">{formatScanStatusLabel(latestScanJob.status)}</span>
-                {` • scanned ${latestScanJob.messagesScanned} messages • detections ${latestScanJob.detectionsFound}`}
-              </p>
-              {hasActiveScan && (
-                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-                  Polling every 5s
-                </span>
-              )}
-            </div>
+            {latestScanJob && (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <p className="text-slate-800">
+                  <span className="font-medium">{formatScanStatusLabel(latestScanJob.status)}</span>
+                  {` • scanned ${latestScanJob.messagesScanned} messages • detections ${latestScanJob.detectionsFound}`}
+                </p>
+                {hasActiveScan && (
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                    Polling every 5s
+                  </span>
+                )}
+              </div>
+            )}
+            {scanInitiatedAt && !latestScanJob && (
+              <p className="mt-2 text-sm text-slate-700">Creating scan task…</p>
+            )}
 
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={scanProgress}>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={latestScanJob ? scanProgress : Math.round(indeterminateProgress)}>
               <div
-                className={`h-full transition-all duration-500 ${
-                  latestScanJob.status === 'failed'
+                className={`h-full transition-all ${
+                  latestScanJob?.status === 'failed'
                     ? 'bg-red-500'
-                    : latestScanJob.status === 'completed'
-                      ? 'bg-emerald-500'
+                    : latestScanJob?.status === 'completed'
+                      ? 'bg-emerald-500 transition-all duration-500'
                       : 'bg-blue-500'
-                }`}
-                style={{ width: `${scanProgress}%` }}
+                } ${!latestScanJob ? 'duration-150' : 'duration-500'}`}
+                style={{ width: `${latestScanJob ? scanProgress : indeterminateProgress}%` }}
               />
             </div>
 
-            <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
-              <p>
-                <span className="text-slate-500">Job ID:</span> {latestScanJob.id}
-              </p>
-              <p>
-                <span className="text-slate-500">Trigger:</span> {latestScanJob.triggerType}
-              </p>
-              <p>
-                <span className="text-slate-500">Started:</span> {formatTimestamp(latestScanJob.startedAt)}
-              </p>
-              <p>
-                <span className="text-slate-500">Completed:</span> {formatTimestamp(latestScanJob.completedAt)}
-              </p>
-            </div>
+            {latestScanJob && (
+              <>
+                <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
+                  <p>
+                    <span className="text-slate-500">Job ID:</span> {latestScanJob.id}
+                  </p>
+                  <p>
+                    <span className="text-slate-500">Trigger:</span> {latestScanJob.triggerType}
+                  </p>
+                  <p>
+                    <span className="text-slate-500">Started:</span> {formatTimestamp(latestScanJob.startedAt)}
+                  </p>
+                  <p>
+                    <span className="text-slate-500">Completed:</span> {formatTimestamp(latestScanJob.completedAt)}
+                  </p>
+                </div>
 
-            {latestScanJob.errors.length > 0 && (
-              <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
-                <p className="font-medium">Scan errors</p>
-                <ul className="mt-1 list-disc pl-5">
-                  {latestScanJob.errors.map((scanErr, idx) => (
-                    <li key={`${scanErr.code}-${idx}`}>
-                      {scanErr.code}: {scanErr.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {latestScanJob.errors.length > 0 && (
+                  <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                    <p className="font-medium">Scan errors</p>
+                    <ul className="mt-1 list-disc pl-5">
+                      {latestScanJob.errors.map((scanErr, idx) => (
+                        <li key={`${scanErr.code}-${idx}`}>
+                          {scanErr.code}: {scanErr.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

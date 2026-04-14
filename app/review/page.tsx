@@ -285,6 +285,7 @@ export default function ReviewQueuePage() {
       {/* Match Modal */}
       {currentMatchingItem && (
         <ApplicationSearchModal
+          key={currentMatchingItem.id}
           onSelectApplication={(appId: string, applyStatus?: ApplicationStatus) => handleMatchSave(currentMatchingItem.id, appId, applyStatus)}
           onCreateNew={() => {
             setMatchingId(null);
@@ -294,6 +295,7 @@ export default function ReviewQueuePage() {
           isSaving={savingId === currentMatchingItem.id}
           detectedCompany={currentMatchingItem.aiCompany}
           detectedRole={currentMatchingItem.aiRole}
+          detectedStatus={currentMatchingItem.detectedStatus}
         />
       )}
 

@@ -15,6 +15,7 @@ interface ApplicationSearchModalProps {
   isSaving: boolean;
   detectedCompany?: string;
   detectedRole?: string;
+  detectedStatus?: ApplicationStatus;
 }
 
 interface ApplicationRow {
@@ -34,12 +35,17 @@ export default function ApplicationSearchModal({
   isSaving,
   detectedCompany,
   detectedRole,
+  detectedStatus,
 }: ApplicationSearchModalProps) {
   const [searchQuery, setSearchQuery] = useState(detectedCompany || '');
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const [applyStatus, setApplyStatus] = useState<ApplicationStatus | ''>('');
+  const [applyStatus, setApplyStatus] = useState<ApplicationStatus | ''>(detectedStatus || '');
+
+  useEffect(() => {
+    setApplyStatus(detectedStatus || '');
+  }, [detectedStatus]);
 
   useEffect(() => {
     const loadApplications = async () => {
