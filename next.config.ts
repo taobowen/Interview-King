@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: '/applications', destination: '/search', permanent: false },
+      { source: '/applications/:path*', destination: '/search', permanent: false },
+      { source: '/add', destination: '/search', permanent: false },
+      { source: '/import', destination: '/search', permanent: false },
+      { source: '/review', destination: '/search', permanent: false },
+      { source: '/notifications', destination: '/search', permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       {

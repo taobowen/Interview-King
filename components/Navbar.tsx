@@ -1,9 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { signInHostedUI, signOutAll, getHostedUIUrl } from '../lib/amplify.client';
+import { signInHostedUI, signOutAll } from '../lib/amplify.client';
 import { useUser } from '../lib/useUser';
-import UnreadNotificationsBadge from './UnreadNotificationsBadge';
-
 export default function Navbar() {
   const { user, loading } = useUser();
 
@@ -13,12 +11,9 @@ export default function Navbar() {
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
           <Link href="/" className="font-semibold">Interview Tracker</Link>
           <nav className="ml-auto flex items-center gap-4 text-sm">
-            <Link href="/applications" className="hover:underline">Applications</Link>
-            <Link href="/add" className="hover:underline">Add</Link>
-            <Link href="/import" className="hover:underline">Import CSV</Link>
+            <Link href="/" className="hover:underline">Dashboard</Link>
+            <Link href="/search" className="hover:underline">Search</Link>
             <Link href="/gmail" className="hover:underline">Gmail</Link>
-            <Link href="/review" className="hover:underline">Review</Link>
-            <Link href="/notifications" className="hover:underline">Notifications</Link>
             <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
           </nav>
         </div>
@@ -30,16 +25,10 @@ export default function Navbar() {
     <header className="border-b bg-white">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
         <Link href="/" className="font-semibold">Interview Tracker</Link>
-        <nav className="ml-auto flex items-center gap-4 text-sm">
-          <Link href="/applications" className="hover:underline">Applications</Link>
-          <Link href="/add" className="hover:underline">Add</Link>
-          <Link href="/import" className="hover:underline">Import CSV</Link>
-          <Link href="/gmail" className="hover:underline">Gmail</Link>
-          <Link href="/review" className="hover:underline">Review</Link>
-          <Link href="/notifications" className="hover:underline inline-flex items-center">
-            Notifications
-            <UnreadNotificationsBadge />
-          </Link>
+          <nav className="ml-auto flex items-center gap-4 text-sm">
+            <Link href="/" className="hover:underline">Dashboard</Link>
+            <Link href="/search" className="hover:underline">Search</Link>
+            <Link href="/gmail" className="hover:underline">Gmail</Link>
           {user ? (
             <>
               <span className="text-slate-600 hidden sm:inline">{user.email}</span>
