@@ -140,7 +140,7 @@ export default function CompanySearchPage() {
               </div>
               <div>
                 <dt className="text-slate-500">Last status update</dt>
-                <dd>{formatDate(app.statusUpdatedAt || app.updatedAt)}</dd>
+                <dd>{formatDate(app.statusUpdatedAt || app.lastActionAt)}</dd>
               </div>
             </dl>
 
